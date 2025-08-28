@@ -14,8 +14,12 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
         .setTitle('Gamification Platform API')
-        .setDescription('APIs de Projects, Players e Progression (MVP)')
+      .setDescription('APIs de Projects, Players, Progression, Inventory')
         .setVersion('0.1.0')
+      .addApiKey(
+          { type: 'apiKey', name: 'x-tenant-id', in: 'header', description: 'Tenant ID (ex.: demo)' },
+          'Tenant',
+      )
         .addBearerAuth()
         .addServer('http://localhost:3000')
         .build();

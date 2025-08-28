@@ -77,4 +77,13 @@ export class InventoryService {
             throw err;
         }
     }
+    async balance(tenantId: string, playerId: string) {
+        const player = await this.playerModel.findOne(
+            { _id: playerId, tenantId },
+            { wallet: 1 },
+        ).lean();
+
+        if (!player) throw new NotFoundException('Player not found');
+        return { playerId, wallet: player.wallet };
+    }
 }
