@@ -32,3 +32,4 @@ export class Player {
 
 
 export const PlayerSchema = SchemaFactory.createForClass(Player);
+PlayerSchema.index({ tenantId: 1, projectId: 1, username: 1 }, { unique: true });
