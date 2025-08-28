@@ -6,6 +6,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { PlayersModule } from './modules/players/players.module';
 import { ProgressionModule } from './modules/progression/progression.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ProgressionModule } from './modules/progression/progression.module';
     ProjectsModule,
     PlayersModule,
     ProgressionModule,
+      InventoryModule,
   ],
 })
 export class AppModule {}

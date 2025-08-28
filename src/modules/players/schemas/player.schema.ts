@@ -19,6 +19,15 @@ export class Player {
 
     @Prop({ default: 1 })
     level!: number;
+
+    @Prop({
+        type: {
+            soft: { type: Number, default: 0 },
+            hard: { type: Number, default: 0 },
+        },
+        default: { soft: 0, hard: 0 },
+    })
+    wallet!: { soft: number; hard: number };
 }
 
 
