@@ -4,7 +4,14 @@ import { Request } from 'express';
 import { Model } from 'mongoose';
 import { AwardXpDto } from './dto/award-xp.dto';
 import { Player, PlayerDocument } from '../players/schemas/player.schema';
+import {ApiHeader, ApiTags} from '@nestjs/swagger';
 
+@ApiTags('Progression')
+@ApiHeader({
+    name: 'x-tenant-id',
+    description: 'Tenant ID (ex.: demo)',
+    required: true,
+})
 @Controller('progression')
 export class ProgressionController {
   constructor(@InjectModel(Player.name) private playerModel: Model<PlayerDocument>) {}

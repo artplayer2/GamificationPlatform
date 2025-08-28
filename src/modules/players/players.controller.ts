@@ -2,7 +2,14 @@ import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { PlayersService } from './players.service';
 import { CreatePlayerDto } from './dto/create-player.dto';
+import {ApiHeader, ApiTags} from '@nestjs/swagger';
 
+@ApiTags('Players')
+@ApiHeader({
+    name: 'x-tenant-id',
+    description: 'Tenant ID (ex.: demo)',
+    required: true,
+})
 @Controller('players')
 export class PlayersController {
   constructor(private readonly players: PlayersService) {}
