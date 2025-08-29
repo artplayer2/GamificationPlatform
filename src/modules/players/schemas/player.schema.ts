@@ -11,7 +11,7 @@ export class Player {
     @Prop({ required: true, index: true })
     projectId!: string;
 
-    @Prop({ required: true, unique: true })
+    @Prop({ required: true /* unique removido para índice composto */ })
     username!: string;
 
     @Prop({ default: 0 })
@@ -28,8 +28,16 @@ export class Player {
         default: { soft: 0, hard: 0 },
     })
     wallet!: { soft: number; hard: number };
+
+    // 👇 timestamps (opcionais para o TS “ver”)
+    @Prop()
+    createdAt?: Date;
+
+    @Prop()
+    updatedAt?: Date;
 }
 
-
 export const PlayerSchema = SchemaFactory.createForClass(Player);
+
+// Unicidade por tenant+project+username
 PlayerSchema.index({ tenantId: 1, projectId: 1, username: 1 }, { unique: true });

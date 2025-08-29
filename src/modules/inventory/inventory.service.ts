@@ -1,9 +1,12 @@
-import { ConflictException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Player, PlayerDocument } from '../players/schemas/player.schema';
 import { Tx, TxDocument } from './schemas/tx.schema';
 import { WalletOpDto } from './dto/wallet.dto';
+import { WalletTxQueryDto } from './dto/wallet-tx-query.dto';
+
+type EnsureResult = { tx: TxDocument; isNew: boolean };
 
 @Injectable()
 export class InventoryService {
@@ -13,10 +16,15 @@ export class InventoryService {
     ) {}
 
     async credit(tenantId: string, dto: WalletOpDto) {
-        // 1) registra transação idempotente (ou reutiliza)
-        const tx = await this.ensureIdempotentTx(tenantId, dto, 'credit');
+        const { tx, isNew } = await this.ensureIdempotentTx(tenantId, dto, 'credit');
 
-        // 2) aplica crédito atômico
+        if (!isNew) {
+            // ⚖️ idempotente: não aplica de novo; retorna estado atual + tx existente
+            const player = await this.playerModel.findOne({ _id: dto.playerId, tenantId }, { wallet: 1 }).lean();
+            if (!player) throw new NotFoundException('Player not found');
+            return { playerId: dto.playerId, wallet: player.wallet, txId: tx.id, type: 'credit' as const, idempotent: true };
+        }
+
         const path = `wallet.${dto.currency}`;
         const updated = await this.playerModel.findOneAndUpdate(
             { _id: dto.playerId, tenantId },
@@ -25,14 +33,19 @@ export class InventoryService {
         );
         if (!updated) throw new NotFoundException('Player not found');
 
-        return { playerId: updated.id, wallet: updated.wallet, txId: tx.id, type: 'credit' as const };
+        return { playerId: updated.id, wallet: updated.wallet, txId: tx.id, type: 'credit' as const, idempotent: false };
     }
 
     async debit(tenantId: string, dto: WalletOpDto) {
-        // 1) registra transação idempotente (ou reutiliza)
-        const tx = await this.ensureIdempotentTx(tenantId, dto, 'debit');
+        const { tx, isNew } = await this.ensureIdempotentTx(tenantId, dto, 'debit');
 
-        // 2) débito atômico com verificação de saldo
+        if (!isNew) {
+            // ⚖️ idempotente: não aplica de novo; retorna estado atual + tx existente
+            const player = await this.playerModel.findOne({ _id: dto.playerId, tenantId }, { wallet: 1 }).lean();
+            if (!player) throw new NotFoundException('Player not found');
+            return { playerId: dto.playerId, wallet: player.wallet, txId: tx.id, type: 'debit' as const, idempotent: true };
+        }
+
         const path = `wallet.${dto.currency}`;
         const updated = await this.playerModel.findOneAndUpdate(
             { _id: dto.playerId, tenantId, [path]: { $gte: dto.amount } },
@@ -41,20 +54,65 @@ export class InventoryService {
         );
 
         if (!updated) {
-            // pode ter sido player inexistente OU saldo insuficiente
             const player = await this.playerModel.findOne({ _id: dto.playerId, tenantId }).lean();
             if (!player) throw new NotFoundException('Player not found');
             throw new BadRequestException('Insufficient funds');
         }
 
-        return { playerId: updated.id, wallet: updated.wallet, txId: tx.id, type: 'debit' as const };
+        return { playerId: updated.id, wallet: updated.wallet, txId: tx.id, type: 'debit' as const, idempotent: false };
     }
 
+    async balance(tenantId: string, playerId: string) {
+        const player = await this.playerModel.findOne(
+            { _id: playerId, tenantId },
+            { wallet: 1 },
+        ).lean();
+
+        if (!player) throw new NotFoundException('Player not found');
+        return { playerId, wallet: player.wallet };
+    }
+
+    /** Listagem paginada de transações de wallet por _id cursor (desc). */
+    async listWalletTx(tenantId: string, q: WalletTxQueryDto) {
+        const filter: any = { tenantId };
+        if (q.playerId) filter.playerId = q.playerId;
+        if (q.currency) filter.currency = q.currency;
+
+        const limit = q.limit ?? 20;
+
+        if (q.after) {
+            filter._id = { $lt: new Types.ObjectId(q.after) };
+        }
+
+        const rows = await this.txModel
+            .find(filter)
+            .sort({ _id: -1 })
+            .limit(limit)
+            .lean<any>(); // ajuda o TS a reconhecer createdAt
+
+        const nextCursor = rows.length === limit ? rows[rows.length - 1]._id.toString() : null;
+
+        return {
+            items: rows.map((r: any) => ({
+                id: r._id.toString(),
+                playerId: r.playerId,
+                currency: r.currency,
+                type: r.type,
+                amount: r.amount,
+                reason: r.reason,
+                createdAt: r.createdAt, // timestamps precisam estar no schema Tx (já adicionamos)
+                idempotencyKey: r.idempotencyKey,
+            })),
+            nextCursor,
+        };
+    }
+
+    /** Cria o registro de TX ou retorna o já existente (idempotência forte). */
     private async ensureIdempotentTx(
         tenantId: string,
         dto: WalletOpDto,
         type: 'credit' | 'debit',
-    ) {
+    ): Promise<EnsureResult> {
         try {
             const tx = await this.txModel.create({
                 tenantId,
@@ -65,25 +123,14 @@ export class InventoryService {
                 idempotencyKey: dto.idempotencyKey,
                 reason: dto.reason,
             });
-            return tx;
+            return { tx, isNew: true };
         } catch (err: any) {
-            // erro de índice único → transação já registrada
             if (err?.code === 11000) {
                 const existing = await this.txModel.findOne({ tenantId, idempotencyKey: dto.idempotencyKey });
                 if (!existing) throw new ConflictException('Idempotency conflict');
-                // retornamos a transação existente (idempotência)
-                return existing;
+                return { tx: existing, isNew: false };
             }
             throw err;
         }
-    }
-    async balance(tenantId: string, playerId: string) {
-        const player = await this.playerModel.findOne(
-            { _id: playerId, tenantId },
-            { wallet: 1 },
-        ).lean();
-
-        if (!player) throw new NotFoundException('Player not found');
-        return { playerId, wallet: player.wallet };
     }
 }

@@ -20,14 +20,21 @@ export class Tx {
     @Prop({ required: true, min: 1 })
     amount!: number;
 
-    @Prop({ required: true, unique: false })
+    @Prop({ required: true })
     idempotencyKey!: string;
 
-    @Prop({ required: false })
+    @Prop()
     reason?: string;
+
+    // 👇 timestamps (para o TS reconhecer)
+    @Prop()
+    createdAt?: Date;
+
+    @Prop()
+    updatedAt?: Date;
 }
 
 export const TxSchema = SchemaFactory.createForClass(Tx);
 
-// Garantir idempotência por tenant + chave
+// Idempotência por tenant + chave
 TxSchema.index({ tenantId: 1, idempotencyKey: 1 }, { unique: true });
