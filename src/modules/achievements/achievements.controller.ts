@@ -21,12 +21,6 @@ export class AchievementsController {
         return this.svc.createDef(tenantId, body);
     }
 
-    @Post('grant')
-    grant(@Req() req: Request, @Body() body: GrantAchievementDto) {
-        const tenantId = (req as any).tenantId as string;
-        return this.svc.grantDirect(tenantId, body.projectId, body.playerId, body.code);
-    }
-
     @Get()
     @ApiQuery({ name: 'projectId', required: true })
     list(@Req() req: Request, @Query('projectId') projectId: string) {
@@ -40,5 +34,11 @@ export class AchievementsController {
     player(@Req() req: Request, @Query('projectId') projectId: string, @Query('playerId') playerId: string) {
         const tenantId = (req as any).tenantId as string;
         return this.svc.getPlayerAchievements(tenantId, projectId, playerId);
+    }
+
+    @Post('grant')
+    grant(@Req() req: Request, @Body() body: GrantAchievementDto) {
+        const tenantId = (req as any).tenantId as string;
+        return this.svc.grantDirect(tenantId, body.projectId, body.playerId, body.code);
     }
 }

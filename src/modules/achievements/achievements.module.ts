@@ -13,7 +13,7 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
             { name: AchievementDef.name, schema: AchievementDefSchema },
             { name: PlayerAchievement.name, schema: PlayerAchievementSchema },
             { name: Player.name, schema: PlayerSchema },
-            { name: Project.name, schema: ProjectSchema }
+            { name: Project.name, schema: ProjectSchema },
         ]),
     ],
     controllers: [AchievementsController],

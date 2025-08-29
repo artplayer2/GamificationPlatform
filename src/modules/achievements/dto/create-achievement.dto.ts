@@ -20,7 +20,7 @@ export class CreateAchievementDto {
     @IsString()
     imageUrl?: string;
 
-    @ApiProperty({ enum: ['xp_threshold', 'counter_threshold'], example: 'xp_threshold' })
+    @ApiProperty({ enum: ['xp_threshold', 'counter_threshold'], example: 'counter_threshold' })
     @IsEnum(['xp_threshold', 'counter_threshold'])
     type!: 'xp_threshold' | 'counter_threshold';
 
@@ -43,6 +43,7 @@ export class CreateAchievementDto {
     @Min(1)
     counterMin?: number;
 
+    // projeto ao qual a definição pertence
     @ApiProperty({ example: '66d2a1f5e4...' })
     @IsString()
     projectId!: string;

@@ -1,10 +1,10 @@
-import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AchievementDef, AchievementDefDocument } from './schemas/achievement-def.schema';
 import { PlayerAchievement, PlayerAchievementDocument } from './schemas/player-achievement.schema';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
-import { Project, ProjectDocument } from '../projects/schemas/project.schema'
+import { Project, ProjectDocument } from '../projects/schemas/project.schema';
 
 @Injectable()
 export class AchievementsService {
@@ -14,12 +14,20 @@ export class AchievementsService {
         @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
     ) {}
 
+    /** Cria uma definição de achievement para um projeto */
     async createDef(tenantId: string, dto: CreateAchievementDto) {
-        // 1) validar projeto
+        // valida coerência por tipo
+        if (dto.type === 'xp_threshold' && (dto.minXp ?? undefined) === undefined) {
+            throw new BadRequestException('minXp is required for xp_threshold');
+        }
+        if (dto.type === 'counter_threshold' && (!dto.counterName || !dto.counterMin)) {
+            throw new BadRequestException('counterName and counterMin are required for counter_threshold');
+        }
+
+        // valida se o projeto existe neste tenant
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
 
-        // 2) criar definição + capturar duplicado
         try {
             return await this.defModel.create({
                 tenantId,
@@ -30,6 +38,8 @@ export class AchievementsService {
                 imageUrl: dto.imageUrl,
                 type: dto.type,
                 minXp: dto.minXp,
+                counterName: dto.counterName,
+                counterMin: dto.counterMin,
             });
         } catch (err: any) {
             if (err?.code === 11000) {
@@ -43,10 +53,7 @@ export class AchievementsService {
         return this.defModel.find({ tenantId, projectId }).lean();
     }
 
-    /**
-     * Checa e desbloqueia conquistas (MVP: xp_threshold) quando o XP muda.
-     * Retorna as conquistas desbloqueadas nesta chamada.
-     */
+    /** Desbloqueia conquistas por XP */
     async checkUnlocksOnXp(tenantId: string, projectId: string, playerId: string, newXp: number) {
         const candidates = await this.defModel.find({
             tenantId, projectId, type: 'xp_threshold', minXp: { $lte: newXp },
@@ -57,13 +64,10 @@ export class AchievementsService {
         const unlocked: string[] = [];
         for (const c of candidates) {
             try {
-                await this.paModel.create({
-                    tenantId, projectId, playerId, code: c.code, unlockedAt: new Date(),
-                });
+                await this.paModel.create({ tenantId, projectId, playerId, code: c.code, unlockedAt: new Date() });
                 unlocked.push(c.code);
             } catch (err: any) {
-                // índice único evita duplicação; ignore erro de duplicado (E11000)
-                if (!(err?.code === 11000)) throw err;
+                if (!(err?.code === 11000)) throw err; // duplicado → ignora
             }
         }
         return unlocked;
@@ -73,8 +77,8 @@ export class AchievementsService {
         return this.paModel.find({ tenantId, projectId, playerId }).lean();
     }
 
+    /** Grant manual: concede conquista diretamente (idempotente) */
     async grantDirect(tenantId: string, projectId: string, playerId: string, code: string) {
-        // valida se a definição existe
         const def = await this.defModel.findOne({ tenantId, projectId, code }).lean();
         if (!def) throw new NotFoundException('Achievement definition not found');
 
@@ -83,7 +87,6 @@ export class AchievementsService {
             return { granted: true, code: pa.code };
         } catch (err: any) {
             if (err?.code === 11000) {
-                // já desbloqueado: idempotente
                 return { granted: false, alreadyUnlocked: true, code };
             }
             throw err;

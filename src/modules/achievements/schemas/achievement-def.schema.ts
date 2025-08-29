@@ -4,8 +4,10 @@ import { HydratedDocument } from 'mongoose';
 export type AchievementDefDocument = HydratedDocument<AchievementDef>;
 
 /**
- * Definição de Achievement, por PROJETO.
- * type = 'xp_threshold' (MVP) → desbloqueia quando player.xp >= minXp
+ * Definição de Achievement por PROJETO.
+ * Tipos suportados no MVP:
+ *  - xp_threshold: desbloqueia quando player.xp >= minXp
+ *  - counter_threshold: quando um contador (counterName) atingir counterMin
  */
 @Schema({ timestamps: true })
 export class AchievementDef {
@@ -15,8 +17,8 @@ export class AchievementDef {
     @Prop({ required: true, index: true })
     projectId!: string;
 
-    @Prop({ required: true }) // único por tenant+project+code
-    code!: string;
+    @Prop({ required: true })
+    code!: string; // único por tenant+project
 
     @Prop({ required: true })
     title!: string;
@@ -31,18 +33,18 @@ export class AchievementDef {
     type!: 'xp_threshold' | 'counter_threshold';
 
     // xp_threshold
-    @Prop({ required: false, min: 0 })
+    @Prop({ min: 0 })
     minXp?: number;
 
     // counter_threshold
-    @Prop({ required: false })
+    @Prop()
     counterName?: string;
 
-    @Prop({ required: false, min: 1 })
+    @Prop({ min: 1 })
     counterMin?: number;
-
-
 }
 
 export const AchievementDefSchema = SchemaFactory.createForClass(AchievementDef);
+
+// unicidade por tenant+project+code
 AchievementDefSchema.index({ tenantId: 1, projectId: 1, code: 1 }, { unique: true });
