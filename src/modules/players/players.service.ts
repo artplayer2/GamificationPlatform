@@ -1,6 +1,6 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose'; // 👈 Types importado
 import { Player, PlayerDocument } from './schemas/player.schema';
 import { CreatePlayerDto } from './dto/create-player.dto';
 
@@ -25,14 +25,21 @@ export class PlayersService {
     }
 
     async get(tenantId: string, id: string) {
+        // ✅ valida ID
+        if (!Types.ObjectId.isValid(id)) {
+            throw new BadRequestException('Invalid player id');
+        }
+
+        const _id = new Types.ObjectId(id);
+
         const player = await this.playerModel.findOne(
-            { _id: id, tenantId },
+            { _id, tenantId },
             { username: 1, xp: 1, level: 1, wallet: 1, projectId: 1, createdAt: 1, updatedAt: 1 },
         ).lean();
 
         if (!player) throw new NotFoundException('Player not found');
         return {
-            id: id,
+            id,
             username: player.username,
             projectId: player.projectId,
             xp: player.xp,
@@ -41,5 +48,15 @@ export class PlayersService {
             createdAt: player.createdAt,
             updatedAt: player.updatedAt,
         };
+    }
+
+    // (opcional) helper para depuração
+    async getByUsername(tenantId: string, projectId: string, username: string) {
+        const p = await this.playerModel.findOne(
+            { tenantId, projectId, username },
+            { username: 1, xp: 1, level: 1, wallet: 1, projectId: 1, createdAt: 1 },
+        ).lean();
+        if (!p) throw new NotFoundException('Player not found');
+        return { id: (p as any)._id?.toString(), ...p };
     }
 }

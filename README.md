@@ -13,7 +13,7 @@ Este repositório é um *ponto de partida* mínimo para a plataforma de gamifica
 
 ## Rodando localmente
 ```bash
-cp .env.example .env
+cp .env .env
 npm i -g @nestjs/cli
 npm i
 npm run start:dev
@@ -22,7 +22,7 @@ API em `http://localhost:3000/v1`.
 
 ## Rodando com Docker Compose
 ```bash
-cp .env.example .env
+cp .env .env
 docker compose up --build
 ```
 

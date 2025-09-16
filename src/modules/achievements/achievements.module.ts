@@ -6,6 +6,7 @@ import { AchievementDef, AchievementDefSchema } from './schemas/achievement-def.
 import { PlayerAchievement, PlayerAchievementSchema } from './schemas/player-achievement.schema';
 import { Player, PlayerSchema } from '../players/schemas/player.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
+import { EventsModule } from '../events/events.module';
 
 @Module({
     imports: [
@@ -15,6 +16,7 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
             { name: Player.name, schema: PlayerSchema },
             { name: Project.name, schema: ProjectSchema },
         ]),
+        EventsModule, // 👈 para logar eventos
     ],
     controllers: [AchievementsController],
     providers: [AchievementsService],

@@ -9,6 +9,8 @@ import { ProgressionModule } from './modules/progression/progression.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { AchievementsModule } from './modules/achievements/achievements.module';
 import { CountersModule } from './modules/counters/counters.module';
+import {EventsModule} from "./modules/events/events.module";
+import {QuestsModule} from "./modules/quests/quests.module";
 
 @Module({
   imports: [
@@ -19,9 +21,11 @@ import { CountersModule } from './modules/counters/counters.module';
     ProjectsModule,
     PlayersModule,
     ProgressionModule,
-      InventoryModule,
-      AchievementsModule,
-      CountersModule,
+    InventoryModule,
+    AchievementsModule,
+    CountersModule,
+    EventsModule,
+    QuestsModule
   ],
 })
 export class AppModule {}

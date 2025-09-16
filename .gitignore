@@ -34,8 +34,8 @@ lerna-debug.log*
 
 # Environment
 .env
-.env.*
-!.env.example
+.env
+!.env
 
 # Build
 /build

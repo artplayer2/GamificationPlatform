@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import helmet from 'helmet';
 
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -10,7 +11,13 @@ async function bootstrap() {
   app.use(helmet());
   app.enableCors();
   app.setGlobalPrefix('v1');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+    forbidUnknownValues: false,
+  }));
+
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   const config = new DocumentBuilder()
         .setTitle('Gamification Platform API')

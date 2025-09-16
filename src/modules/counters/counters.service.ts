@@ -7,6 +7,7 @@ import { AchievementDef, AchievementDefDocument } from '../achievements/schemas/
 import { PlayerAchievement, PlayerAchievementDocument } from '../achievements/schemas/player-achievement.schema';
 import { Player, PlayerDocument } from '../players/schemas/player.schema';
 import { Project, ProjectDocument } from '../projects/schemas/project.schema';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class CountersService {
@@ -16,17 +17,16 @@ export class CountersService {
         @InjectModel(PlayerAchievement.name) private paModel: Model<PlayerAchievementDocument>,
         @InjectModel(Player.name) private playerModel: Model<PlayerDocument>,
         @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+        private readonly events: EventsService,
     ) {}
 
     async increment(tenantId: string, dto: IncrementCounterDto) {
-        // 1) valida projeto e player
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
 
         const player = await this.playerModel.findOne({ _id: dto.playerId, tenantId, projectId: dto.projectId }).lean();
         if (!player) throw new NotFoundException('Player not found in this project');
 
-        // 2) valida se o counterName é conhecido neste projeto (há ao menos 1 definição usando-o)
         const anyDefForThisCounter = await this.defModel.exists({
             tenantId,
             projectId: dto.projectId,
@@ -37,14 +37,12 @@ export class CountersService {
             throw new BadRequestException('Unknown counter name for this project');
         }
 
-        // 3) incrementa/upserta contador
         const updated = await this.counterModel.findOneAndUpdate(
             { tenantId, projectId: dto.projectId, playerId: dto.playerId, name: dto.name },
             { $inc: { value: dto.amount } },
             { new: true, upsert: true },
         );
 
-        // 4) checa defs elegíveis (atingiram counterMin)
         const candidates = await this.defModel.find({
             tenantId,
             projectId: dto.projectId,
@@ -64,8 +62,16 @@ export class CountersService {
                     unlockedAt: new Date(),
                 });
                 unlocked.push(d.code);
+
+                await this.events.log({
+                    tenantId,
+                    projectId: dto.projectId,
+                    type: 'achievement.unlocked',
+                    playerId: dto.playerId,
+                    payload: { code: d.code, via: 'counter_threshold', counterName: dto.name, value: updated.value },
+                });
             } catch (err: any) {
-                if (!(err?.code === 11000)) throw err; // já desbloqueado → ignora
+                if (!(err?.code === 11000)) throw err;
             }
         }
 
