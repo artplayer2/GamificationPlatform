@@ -11,6 +11,7 @@ import { Player, PlayerDocument } from '../players/schemas/player.schema';
 import { ProgressionCurve, ProgressionCurveDocument } from '../progression/schemas/curve.schema';
 import { AchievementsService } from '../achievements/achievements.service';
 import { EventsService } from '../events/events.service';
+import { ItemsService } from '../items/items.service';
 
 @Injectable()
 export class QuestsService {
@@ -23,10 +24,10 @@ export class QuestsService {
         @InjectModel(ProgressionCurve.name) private curveModel: Model<ProgressionCurveDocument>,
         private readonly achievements: AchievementsService,
         private readonly events: EventsService,
+        private readonly items: ItemsService, // 👈 novo
     ) {}
 
     // ====== CRUD básico de definição ======
-
     async createDef(tenantId: string, dto: CreateQuestDto) {
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
@@ -41,6 +42,7 @@ export class QuestsService {
                 rewardXp: dto.rewardXp ?? 0,
                 rewardSoft: dto.rewardSoft ?? 0,
                 rewardHard: dto.rewardHard ?? 0,
+                rewardItems: (dto.rewardItems ?? []).map(i => ({ code: i.code, qty: i.qty })),
                 metadata: dto.metadata ?? {},
             });
         } catch (err: any) {
@@ -51,29 +53,16 @@ export class QuestsService {
         }
     }
 
-    async listDefsPaged(
-        tenantId: string,
-        params: { projectId: string; after?: string; limit?: number; code?: string },
-    ) {
+    async listDefsPaged(tenantId: string, params: { projectId: string; after?: string; limit?: number; code?: string }) {
         const filter: any = { tenantId, projectId: params.projectId };
         if (params.code) filter.code = params.code;
-
-        // 👇 validação robusta do cursor
         if (params.after !== undefined && params.after !== null && params.after !== '') {
-            if (!Types.ObjectId.isValid(params.after)) {
-                throw new BadRequestException('Invalid after cursor');
-            }
+            if (!Types.ObjectId.isValid(params.after)) throw new BadRequestException('Invalid after cursor');
             filter._id = { $lt: new Types.ObjectId(params.after) };
         }
-
         const limit = Number.isFinite(params.limit as number) ? (params.limit as number) : 20;
 
-        const rows = await this.defModel
-            .find(filter)
-            .sort({ _id: -1 })
-            .limit(limit)
-            .lean();
-
+        const rows = await this.defModel.find(filter).sort({ _id: -1 }).limit(limit).lean();
         const nextCursor = rows.length === limit ? rows[rows.length - 1]._id.toString() : null;
 
         return {
@@ -86,23 +75,27 @@ export class QuestsService {
                 rewardXp: r.rewardXp,
                 rewardSoft: r.rewardSoft,
                 rewardHard: r.rewardHard,
+                rewardItems: r.rewardItems ?? [],
                 metadata: r.metadata ?? {},
                 createdAt: (r as any).createdAt,
             })),
             nextCursor,
         };
     }
-    // ====== Completar quest (idempotente) ======
 
+    // ====== Completar quest (idempotente) ======
     async complete(tenantId: string, playerId: string, code: string, body: CompleteQuestDto) {
         // 0) valida projeto e player
         const project = await this.projectModel.findOne({ _id: body.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
 
-        const player = await this.playerModel.findOne({ _id: playerId, tenantId, projectId: body.projectId });
-        if (!player) throw new NotFoundException('Player not found in this project');
+        const player = await this.playerModel.findOne({ _id: playerId, tenantId });
+        if (!player) throw new NotFoundException('Player not found');
+        if (player.projectId !== body.projectId) {
+            throw new BadRequestException(`Player belongs to a different project. expected=${body.projectId} actual=${player.projectId}`);
+        }
 
-        // 1) idempotência da operação de completar
+        // 1) idempotência por operação
         let isNewTx = false;
         try {
             await this.txModel.create({
@@ -115,23 +108,19 @@ export class QuestsService {
             isNewTx = true;
         } catch (err: any) {
             if (err?.code !== 11000) throw err;
-            // já existe transação com essa chave → resposta do estado atual
             const pq = await this.pqModel.findOne({ tenantId, projectId: body.projectId, playerId, code }).lean();
-            const already = !!pq;
-            const result = {
+            return {
                 playerId,
                 projectId: body.projectId,
                 code,
-                alreadyCompleted: already,
+                alreadyCompleted: !!pq,
                 idempotent: true,
             };
-            return result;
         }
 
-        // 2) verifica se já está concluída (idempotência por recurso)
+        // 2) se já concluída
         const existing = await this.pqModel.findOne({ tenantId, projectId: body.projectId, playerId, code }).lean();
         if (existing) {
-            // registra snapshot na tx e retorna
             await this.txModel.updateOne(
                 { tenantId, idempotencyKey: body.idempotencyKey },
                 { $set: { resultSnapshot: { playerId, projectId: body.projectId, code, alreadyCompleted: true, idempotent: !isNewTx } } },
@@ -143,29 +132,37 @@ export class QuestsService {
         const def = await this.defModel.findOne({ tenantId, projectId: body.projectId, code }).lean();
         if (!def) throw new NotFoundException('Quest definition not found');
 
-        // 4) aplica recompensas (XP e moedas) – idempotente pois só executa no "primeiro complete"
-        let xpAwarded = 0;
-        let walletSoft = 0;
-        let walletHard = 0;
+        // 4) aplica recompensas
+        let xpAwarded = def.rewardXp ?? 0;
+        let walletSoft = def.rewardSoft ?? 0;
+        let walletHard = def.rewardHard ?? 0;
 
-        if ((def.rewardXp ?? 0) > 0) xpAwarded = def.rewardXp!;
-        if ((def.rewardSoft ?? 0) > 0) walletSoft = def.rewardSoft!;
-        if ((def.rewardHard ?? 0) > 0) walletHard = def.rewardHard!;
-
-        // 4.1) aplica XP: soma e recalcula level de acordo com a curva ativa (fallback linear 1000)
         if (xpAwarded > 0) {
             player.xp += xpAwarded;
             const { level } = await this.computeLevel(tenantId, body.projectId, player.xp);
             player.level = level;
         }
-
-        // 4.2) aplica wallet (soft/hard)
         if (walletSoft > 0) player.wallet.soft += walletSoft;
         if (walletHard > 0) player.wallet.hard += walletHard;
 
         await player.save();
 
-        // 5) grava registro de conclusão
+        // 4.1) recompensa de ITENS (idempotente por item)
+        const itemsGranted: Array<{ code: string; qty: number; idempotent: boolean }> = [];
+        for (const it of def.rewardItems ?? []) {
+            const itemKey = `${body.idempotencyKey}:item:${it.code}`;
+            const result = await this.items.grant(tenantId, {
+                projectId: body.projectId,
+                playerId,
+                code: it.code,
+                qty: it.qty,
+                idempotencyKey: itemKey,
+                reason: `quest:${code}`,
+            });
+            itemsGranted.push({ code: it.code, qty: it.qty, idempotent: result.idempotent });
+        }
+
+        // 5) registra conclusão
         await this.pqModel.create({
             tenantId,
             projectId: body.projectId,
@@ -176,7 +173,7 @@ export class QuestsService {
             context: body.context ?? {},
         });
 
-        // 6) checa achievements por XP, se houve XP
+        // 6) checa achievements por XP
         let achievementsUnlocked: string[] = [];
         if (xpAwarded > 0) {
             achievementsUnlocked = await this.achievements.checkUnlocksOnXp(
@@ -188,6 +185,15 @@ export class QuestsService {
         }
 
         // 7) evento
+        const response = {
+            playerId,
+            projectId: body.projectId,
+            code,
+            rewards: { xp: xpAwarded, soft: walletSoft, hard: walletHard, items: itemsGranted.map(i => ({ code: i.code, qty: i.qty })) },
+            achievementsUnlocked,
+            idempotent: false,
+        };
+
         await this.events.log({
             tenantId,
             projectId: body.projectId,
@@ -195,22 +201,13 @@ export class QuestsService {
             playerId,
             payload: {
                 code,
-                rewards: { xp: xpAwarded, soft: walletSoft, hard: walletHard },
+                rewards: response.rewards,
                 context: body.context ?? {},
                 achievementsUnlocked,
             },
         });
 
-        const response = {
-            playerId,
-            projectId: body.projectId,
-            code,
-            rewards: { xp: xpAwarded, soft: walletSoft, hard: walletHard },
-            achievementsUnlocked,
-            idempotent: false,
-        };
-
-        // 8) snapshot para idempotência forte
+        // 8) snapshot
         await this.txModel.updateOne(
             { tenantId, idempotencyKey: body.idempotencyKey },
             { $set: { resultSnapshot: response } },
@@ -219,10 +216,9 @@ export class QuestsService {
         return response;
     }
 
-    // util: calcula level com base na curva ativa (ou fallback linear x1000)
+    // util: calcula level
     private async computeLevel(tenantId: string, projectId: string, totalXp: number) {
         const activeCurve = await this.curveModel.findOne({ tenantId, projectId, isActive: true }).lean();
-
         if (!activeCurve) {
             return { level: Math.floor(totalXp / 1000) + 1 };
         }

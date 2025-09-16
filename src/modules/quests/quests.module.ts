@@ -10,6 +10,7 @@ import { Player, PlayerSchema } from '../players/schemas/player.schema';
 import { ProgressionCurve, ProgressionCurveSchema } from '../progression/schemas/curve.schema';
 import { AchievementsModule } from '../achievements/achievements.module';
 import { EventsModule } from '../events/events.module';
+import { ItemsModule } from '../items/items.module';
 
 @Module({
     imports: [
@@ -23,6 +24,7 @@ import { EventsModule } from '../events/events.module';
         ]),
         AchievementsModule,
         EventsModule,
+        ItemsModule,
     ],
     controllers: [QuestsController],
     providers: [QuestsService],

@@ -29,6 +29,17 @@ export class QuestDef {
     @Prop({ default: 0, min: 0 })
     rewardHard!: number;
 
+    @Prop({
+        type: [
+            {
+                code: { type: String, required: true },
+                qty: { type: Number, required: true, min: 1 },
+            },
+        ],
+        default: [],
+    })
+    rewardItems!: Array<{ code: string; qty: number }>;
+
     @Prop({ type: Object })
     metadata?: Record<string, any>;
 
