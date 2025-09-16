@@ -11,6 +11,7 @@ import { AchievementsModule } from './modules/achievements/achievements.module';
 import { CountersModule } from './modules/counters/counters.module';
 import {EventsModule} from "./modules/events/events.module";
 import {QuestsModule} from "./modules/quests/quests.module";
+import {ItemsModule} from "./modules/items/items.module";
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import {QuestsModule} from "./modules/quests/quests.module";
     AchievementsModule,
     CountersModule,
     EventsModule,
-    QuestsModule
+    QuestsModule,
+    ItemsModule
   ],
 })
 export class AppModule {}
