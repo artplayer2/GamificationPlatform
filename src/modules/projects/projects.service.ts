@@ -1,26 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { randomUUID } from 'crypto';
 import { Project, ProjectDocument } from './schemas/project.schema';
-import { CreateProjectDto } from './dto/create-project.dto';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(@InjectModel(Project.name) private projectModel: Model<ProjectDocument>) {}
+    constructor(
+        @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+        @Inject(forwardRef(() => EventsService)) private readonly events: EventsService,
+    ) {}
 
-  async create(tenantId: string, dto: CreateProjectDto) {
-    const doc = new this.projectModel({
-      tenantId,
-      name: dto.name,
-      publicKey: `pub_${randomUUID()}`,
-      secretKey: `sec_${randomUUID()}`,
-      features: dto.features ?? [],
-    });
-    return await doc.save();
-  }
+    async create(params: { tenantId: string; name: string; /* ... */ }) {
+        const project = await this.projectModel.create({
+            tenantId: params.tenantId,
+            name: params.name,
+            // ...
+        });
 
-  async list(tenantId: string) {
-    return this.projectModel.find({ tenantId }).lean();
-  }
+        await this.events.log({
+            tenantId: params.tenantId,
+            projectId: project._id.toString(),
+            type: 'project.created',
+            payload: { name: project.name },
+        });
+
+        return project;
+    }
 }

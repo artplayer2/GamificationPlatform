@@ -13,11 +13,14 @@ import {EventsModule} from "./modules/events/events.module";
 import {QuestsModule} from "./modules/quests/quests.module";
 import {ItemsModule} from "./modules/items/items.module";
 import {StoreModule} from "./modules/store/store.module";
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import {ScheduleModule} from "@nestjs/schedule";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(process.env.MONGO_URI ?? 'mongodb://localhost:27017/gamification'),
+    ScheduleModule.forRoot(),
     HealthModule,
     TenantModule,
     ProjectsModule,
@@ -29,7 +32,8 @@ import {StoreModule} from "./modules/store/store.module";
     EventsModule,
     QuestsModule,
     ItemsModule,
-    StoreModule
+    StoreModule,
+    WebhooksModule
   ],
 })
 export class AppModule {}

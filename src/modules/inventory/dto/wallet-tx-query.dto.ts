@@ -1,30 +1,25 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsMongoId, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsMongoId, IsOptional, IsPositive, IsString, IsISO8601 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class WalletTxQueryDto {
-    @ApiPropertyOptional({ description: 'Player ID', example: '66d2a2b3e4...' })
-    @IsOptional()
-    @IsString()
-    @IsMongoId()
+    @IsOptional() @IsMongoId()
     playerId?: string;
 
-    @ApiPropertyOptional({ description: 'Moeda (soft|hard)', example: 'soft' })
-    @IsOptional()
-    @IsString()
-    currency?: 'soft' | 'hard';
+    @IsOptional() @IsString()
+    currency?: string;
 
-    @ApiPropertyOptional({ description: 'Página: retornar itens ANTES deste ID (_id)', example: '66d2a9f1e4...' })
-    @IsOptional()
-    @IsString()
-    @IsMongoId()
+    @IsOptional() @IsIn(['credit','debit'])
+    type?: 'credit' | 'debit';
+
+    @IsOptional() @IsISO8601()
     after?: string;
 
-    @ApiPropertyOptional({ description: 'Limite (1–100)', example: 20, default: 20 })
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt()
-    @Min(1)
-    @Max(100)
+    @IsOptional() @IsISO8601()
+    before?: string;
+
+    @IsOptional() @IsString()
+    cursor?: string;
+
+    @IsOptional() @Type(() => Number) @IsInt() @IsPositive()
     limit?: number;
 }

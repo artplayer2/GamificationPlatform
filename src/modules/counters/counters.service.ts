@@ -21,9 +21,6 @@ export class CountersService {
     ) {}
 
     async increment(tenantId: string, dto: IncrementCounterDto) {
-        const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
-        if (!project) throw new NotFoundException('Project not found for this tenant');
-
         const player = await this.playerModel.findOne({ _id: dto.playerId, tenantId, projectId: dto.projectId }).lean();
         if (!player) throw new NotFoundException('Player not found in this project');
 
@@ -42,6 +39,15 @@ export class CountersService {
             { $inc: { value: dto.amount } },
             { new: true, upsert: true },
         );
+
+        // 🎯 evento de incremento do counter
+        await this.events.log({
+            tenantId,
+            projectId: dto.projectId,
+            type: 'counter.incremented',
+            playerId: dto.playerId,
+            payload: { name: dto.name, amount: dto.amount, value: updated.value },
+        });
 
         const candidates = await this.defModel.find({
             tenantId,
