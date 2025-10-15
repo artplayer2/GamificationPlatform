@@ -29,6 +29,9 @@ export class Player {
     })
     wallet!: { soft: number; hard: number };
 
+    @Prop({ type: Object, default: {} })
+    inventory?: Record<string, any>;
+
     // 👇 timestamps (opcionais para o TS “ver”)
     @Prop()
     createdAt?: Date;

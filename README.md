@@ -15,6 +15,7 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
   - 🔌 [REST Examples](./docs/REST.md)
   - 🛰️ [WebSocket Realtime](./docs/WS.md)
   - 📬 [Webhooks](./docs/WEBHOOKS.md)
+  - 🪪 [API Headers](./docs/API_HEADERS.md)
   - 🆘 [Troubleshooting](./docs/TROUBLESHOOTING.md)
   - 🤝 [Contributing & Commits](./docs/CONTRIBUTING.md)
 
@@ -53,8 +54,8 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
    npm install
    npm run start:dev
    # API: http://localhost:3000/v1
-   # Docs: http://localhost:3000/v1/docs
-   ```
+  # Docs: http://localhost:3000/v1/docs
+  ```
 
 3. **Create a Project**
    - Header: `x-tenant-id: demo`
@@ -138,6 +139,20 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
 - 📬 [Webhooks](./docs/WEBHOOKS.md)
 - 🆘 [Troubleshooting](./docs/TROUBLESHOOTING.md)
 - 🤝 [Contributing & Commits](./docs/CONTRIBUTING.md)
+
+---
+
+## ✅ Checklist de Testes
+- `GET /v1/health` retorna 200 OK.
+- Swagger abre em `http://localhost:3000/v1/docs` sem erros.
+- `POST /v1/projects` com `x-tenant-id: demo` cria um projeto.
+- `POST /v1/players` com `projectId` do projeto cria um player.
+- `POST /v1/progression/xp` credita XP e eventos aparecem em WS/Webhooks (se assinados).
+- Realtime: conectar em `ws://localhost:3000/realtime` com `x-api-key`, `x-project-id`, `x-tenant-id`; enviar `{"action":"subscribe","eventTypes":["*"]}` e validar mensagens.
+- Webhooks: criar assinatura em `POST /v1/webhooks/subscriptions` e checar entregas.
+- Métricas: `GET /v1/admin/metrics` e `GET /v1/client/metrics/project/:projectId` (este requer `x-api-key`).
+
+> Dica: se você alterar o código enquanto o servidor está rodando sem `--watch`, reinicie o processo para refletir as mudanças. Se a porta `3000` estiver ocupada, feche o terminal que iniciou `npm run start` ou mate o processo (veja Troubleshooting).
 
 ## 🪪 License
 MIT (or your preferred license)

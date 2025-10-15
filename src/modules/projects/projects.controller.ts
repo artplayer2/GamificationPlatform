@@ -12,7 +12,7 @@ class CreateProjectDto {
 @ApiTags('Projects')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (e.g., demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('projects')

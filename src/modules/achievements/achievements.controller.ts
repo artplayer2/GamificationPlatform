@@ -9,7 +9,7 @@ import { AchievementsQueryDto } from './dto/achievements-query.dto';
 @ApiTags('Achievements')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (ex.: demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('achievements')

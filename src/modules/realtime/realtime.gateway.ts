@@ -6,6 +6,7 @@ import {
 import type { WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import { RealtimeService } from './realtime.service';
+import { ApiKeysService } from '../apikeys/apikeys.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Project, ProjectDocument } from '../projects/schemas/project.schema';
@@ -30,6 +31,7 @@ function fromQuery(req: IncomingMessage, key: string): string | undefined {
 export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
     constructor(
         private readonly realtime: RealtimeService,
+        private readonly apiKeys: ApiKeysService,
         @InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>,
     ) {}
 
@@ -57,8 +59,16 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
             return this.close(client, 4001, 'missing_headers');
         }
 
-        const expected = process.env.REALTIME_DEV_API_KEY || 'dev-api-key';
-        if (apiKey !== expected) {
+        // validação do API key: aceita fallback de DEV somente se configurado
+        const devExpected = process.env.REALTIME_DEV_API_KEY;
+        let valid = false;
+        if (devExpected && apiKey === devExpected) {
+            valid = true;
+        } else {
+            const v = await this.apiKeys.verify(String(tenantId), String(projectId), String(apiKey));
+            valid = !!v;
+        }
+        if (!valid) {
             return this.close(client, 4003, 'invalid_api_key');
         }
 

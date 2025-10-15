@@ -5,6 +5,7 @@ import { Player, PlayerDocument } from './schemas/player.schema';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { EventsService } from '../events/events.service';
 import { Project, ProjectDocument } from '../projects/schemas/project.schema';
+import * as moment from 'moment';
 
 @Injectable()
 export class PlayersService {
@@ -90,5 +91,134 @@ export class PlayersService {
         ).lean();
         if (!p) throw new NotFoundException('Player not found');
         return { id: (p as any)._id?.toString(), ...p };
+    }
+    
+    async findAll(tenantId: string, projectId: string) {
+        await this.ensureProject(tenantId, projectId);
+
+        const players = await this.playerModel
+            .find({ tenantId, projectId })
+            .select('username xp level wallet')
+            .lean()
+            .exec();
+
+        return players.map((p: any) => ({
+            id: p._id.toString(),
+            username: p.username,
+            xp: p.xp,
+            level: p.level,
+            wallet: p.wallet,
+        }));
+    }
+    
+    async getActivePlayerMetrics(tenantId: string, projectId: string, startDate: Date, endDate: Date) {
+        await this.ensureProject(tenantId, projectId);
+        
+        // Total players count
+        const totalPlayers = await this.playerModel.countDocuments({
+            tenantId,
+            projectId,
+        });
+        
+        // New players in period
+        const newPlayers = await this.playerModel.countDocuments({
+            tenantId,
+            projectId,
+            createdAt: { $gte: startDate, $lte: endDate }
+        });
+        
+        // Daily new players
+        const dailyNewPlayers = await this.playerModel.aggregate([
+            {
+                $match: {
+                    tenantId,
+                    projectId,
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    date: "$_id",
+                    count: 1,
+                    _id: 0
+                }
+            },
+            {
+                $sort: { date: 1 }
+            }
+        ]).exec();
+        
+        return {
+            totalPlayers,
+            newPlayers,
+            dailyNewPlayers
+        };
+    }
+    
+    async findOne(tenantId: string, projectId: string, playerId: string) {
+        await this.ensureProject(tenantId, projectId);
+        if (!Types.ObjectId.isValid(playerId)) {
+            throw new BadRequestException('Invalid player id');
+        }
+        
+        const player = await this.playerModel.findOne(
+            { _id: playerId, tenantId, projectId },
+            { username: 1, xp: 1, level: 1, wallet: 1, inventory: 1, projectId: 1, createdAt: 1, updatedAt: 1 },
+        ).lean();
+        
+        if (!player) throw new NotFoundException('Player not found');
+        
+        return {
+            id: playerId,
+            username: player.username,
+            projectId: player.projectId,
+            xp: player.xp,
+            level: player.level,
+            wallet: player.wallet,
+            inventory: player.inventory || {},
+            createdAt: player.createdAt,
+            updatedAt: player.updatedAt,
+        };
+    }
+    
+    async update(tenantId: string, projectId: string, playerId: string, updatePlayerDto: any) {
+        await this.ensureProject(tenantId, projectId);
+        if (!Types.ObjectId.isValid(playerId)) {
+            throw new BadRequestException('Invalid player id');
+        }
+        
+        const player = await this.playerModel.findOneAndUpdate(
+            { _id: playerId, tenantId, projectId },
+            { $set: updatePlayerDto },
+            { new: true }
+        );
+        
+        if (!player) throw new NotFoundException('Player not found');
+        
+        await this.events.log({
+            tenantId,
+            projectId,
+            type: 'player.updated',
+            playerId,
+            payload: updatePlayerDto,
+        });
+        
+        return {
+            id: player._id.toString(),
+            username: player.username,
+            projectId: player.projectId,
+            xp: player.xp,
+            level: player.level,
+            wallet: player.wallet,
+            inventory: player.inventory || {},
+            createdAt: player.createdAt,
+            updatedAt: player.updatedAt,
+        };
     }
 }

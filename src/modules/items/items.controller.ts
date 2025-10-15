@@ -9,7 +9,7 @@ import { ConsumeItemDto } from './dto/consume-item.dto';
 @ApiTags('Items')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (ex.: demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('items')

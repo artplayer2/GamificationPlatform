@@ -8,7 +8,7 @@ import { PurchaseDto } from './dto/purchase.dto';
 @ApiTags('Store')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (ex.: demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('store')

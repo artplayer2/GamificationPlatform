@@ -9,7 +9,7 @@ import { ListDeliveriesDto } from './dto/list-deliveries.dto';
 import { RedriveDeliveriesDto } from './dto/redrive-deliveries.dto';
 
 @ApiTags('Webhooks')
-@ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (ex.: demo)', required: true })
+@ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (e.g. demo)', required: true })
 @Controller('webhooks')
 export class WebhooksController {
     constructor(private readonly webhooks: WebhooksService) {}

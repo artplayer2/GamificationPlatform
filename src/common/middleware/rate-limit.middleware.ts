@@ -10,7 +10,7 @@ export class TenantRateLimitMiddleware implements NestMiddleware {
         standardHeaders: true,
         legacyHeaders: false,
         message: { message: 'Too many requests', statusCode: 429 },
-        keyGenerator: (req: Request) => {
+        keyGenerator: (req: Request): string => {
             // prioriza tenant; fallback para IP (caso rotas públicas)
             const headerName = (process.env.TENANT_HEADER || 'x-tenant-id').toLowerCase();
             const tenant = (req.headers[headerName] as string) || '';

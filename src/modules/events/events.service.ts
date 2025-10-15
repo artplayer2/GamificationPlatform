@@ -5,6 +5,7 @@ import { Event, EventDocument } from './schemas/event.schema';
 import { WebhooksService } from '../webhooks/webhooks.service';
 import { Project, ProjectDocument } from '../projects/schemas/project.schema';
 import { RealtimeService } from '../realtime/realtime.service';
+import * as moment from 'moment';
 
 @Injectable()
 export class EventsService {
@@ -14,6 +15,83 @@ export class EventsService {
         @InjectModel(Project.name) private projectModel?: Model<ProjectDocument>,
         private readonly realtime?: RealtimeService,
     ) {}
+
+    async create(tenantId: string, projectId: string, createEventDto: { type: string; playerId?: string; payload?: any }) {
+        return this.log({
+            tenantId,
+            projectId,
+            type: createEventDto.type,
+            playerId: createEventDto.playerId,
+            payload: createEventDto.payload
+        });
+    }
+    
+    async getProjectEventMetrics(tenantId: string, projectId: string, startDate: Date, endDate: Date) {
+        await this.ensureProject(tenantId, projectId);
+        
+        const eventCounts = await this.eventModel.aggregate([
+            {
+                $match: {
+                    tenantId,
+                    projectId,
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: "$type",
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    type: "$_id",
+                    count: 1,
+                    _id: 0
+                }
+            }
+        ]).exec();
+        
+        const dailyEvents = await this.eventModel.aggregate([
+            {
+                $match: {
+                    tenantId,
+                    projectId,
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        type: "$type"
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    date: "$_id.date",
+                    type: "$_id.type",
+                    count: 1,
+                    _id: 0
+                }
+            },
+            {
+                $sort: { date: 1 }
+            }
+        ]).exec();
+        
+        return {
+            totalEvents: await this.eventModel.countDocuments({
+                tenantId,
+                projectId,
+                createdAt: { $gte: startDate, $lte: endDate }
+            }),
+            eventsByType: eventCounts,
+            dailyEvents
+        };
+    }
 
     private async ensureProject(tenantId: string, projectId: string) {
         if (!tenantId) throw new BadRequestException('Missing tenantId');

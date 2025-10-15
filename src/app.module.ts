@@ -18,6 +18,9 @@ import {ScheduleModule} from "@nestjs/schedule";
 import { DestinationsModule } from './modules/destinations/destinations.module';
 import {TenantProjectModule} from "./modules/common/tenant-project.module";
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { ApiKeysModule } from './modules/apikeys/apikeys.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { ClientModule } from './modules/client/client.module';
 
 
 @Module({
@@ -41,6 +44,9 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     DestinationsModule,
     TenantProjectModule,
     RealtimeModule,
+    ApiKeysModule,
+    AdminModule,
+    ClientModule,
   ],
 })
 export class AppModule {}

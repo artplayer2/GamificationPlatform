@@ -24,11 +24,15 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
         .setTitle('Gamification Platform API')
-      .setDescription('APIs de Projects, Players, Progression, Inventory')
+      .setDescription('REST APIs for Projects, Players, Progression, Inventory, Events, Webhooks, and Realtime')
         .setVersion('0.1.0')
       .addApiKey(
-          { type: 'apiKey', name: 'x-tenant-id', in: 'header', description: 'Tenant ID (ex.: demo)' },
+          { type: 'apiKey', name: 'x-tenant-id', in: 'header', description: 'Tenant ID (e.g. demo)' },
           'Tenant',
+      )
+      .addApiKey(
+          { type: 'apiKey', name: 'x-api-key', in: 'header', description: 'Project API Key' },
+          'ApiKey',
       )
         .addBearerAuth()
         .addServer('http://localhost:3000')

@@ -9,6 +9,12 @@ export interface CreateProjectInput {
     metadata?: Record<string, any>;
 }
 
+export interface UpdateProjectInput {
+    name?: string;
+    plan?: string;
+    metadata?: Record<string, any>;
+}
+
 @Injectable()
 export class ProjectsService {
     constructor(
@@ -89,5 +95,66 @@ export class ProjectsService {
             createdAt: p.createdAt ?? null,
             updatedAt: p.updatedAt ?? null,
         };
+    }
+
+    async findOne(tenantId: string, id: string) {
+        return this.get(tenantId, id);
+    }
+
+    async update(tenantId: string, id: string, updateProjectInput: UpdateProjectInput) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId');
+        if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid project id');
+
+        const project = await this.projectModel.findOne({ _id: id, tenantId }).exec();
+        if (!project) throw new NotFoundException('Project not found');
+
+        if (updateProjectInput.name) {
+            project.name = updateProjectInput.name.trim();
+        }
+        
+        if (updateProjectInput.plan) {
+            project.plan = updateProjectInput.plan;
+        }
+        
+        if (updateProjectInput.metadata) {
+            project.metadata = { ...project.metadata, ...updateProjectInput.metadata };
+        }
+
+        await project.save();
+
+        const p: any = project.toObject();
+        return {
+            id: String(p._id),
+            tenantId: p.tenantId,
+            name: p.name,
+            plan: p.plan ?? 'free',
+            metadata: p.metadata ?? {},
+            createdAt: p.createdAt ?? null,
+            updatedAt: p.updatedAt ?? null,
+        };
+    }
+
+    async remove(tenantId: string, id: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId');
+        if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid project id');
+
+        const result = await this.projectModel.deleteOne({ _id: id, tenantId }).exec();
+        
+        if (result.deletedCount === 0) {
+            throw new NotFoundException('Project not found');
+        }
+
+        return { success: true };
+    }
+
+    async countProjectsByTenant(tenantId: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId');
+        
+        const count = await this.projectModel.countDocuments({ tenantId }).exec();
+        return { count };
+    }
+
+    async findAllByTenant(tenantId: string) {
+        return this.list(tenantId);
     }
 }

@@ -12,7 +12,7 @@ import { AchievementsService } from '../achievements/achievements.service';
 import { EventsService } from '../events/events.service';
 
 @ApiTags('Progression')
-@ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (ex.: demo)', required: true })
+@ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (e.g. demo)', required: true })
 @Controller('progression')
 export class ProgressionController {
     constructor(

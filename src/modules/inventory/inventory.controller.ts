@@ -8,7 +8,7 @@ import { ApiHeader, ApiQuery, ApiTags, ApiBody } from '@nestjs/swagger';
 @ApiTags('Inventory')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (ex.: demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('inventory')

@@ -7,7 +7,7 @@ import { ApiHeader, ApiTags, ApiBody } from '@nestjs/swagger';
 @ApiTags('Players')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (ex.: demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('players')

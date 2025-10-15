@@ -19,6 +19,12 @@ export class Project {
 
     @Prop({ type: [String], default: [] })
     features!: string[];
+
+    @Prop({ default: 'free' })
+    plan?: string;
+
+    @Prop({ type: Object, default: {} })
+    metadata?: Record<string, any>;
 }
 
 

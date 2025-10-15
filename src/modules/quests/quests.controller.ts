@@ -9,7 +9,7 @@ import { QuestsQueryDto } from './dto/quests-query.dto';
 @ApiTags('Quests')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (ex.: demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('quests')

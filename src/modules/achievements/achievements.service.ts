@@ -15,6 +15,83 @@ export class AchievementsService {
         @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
         private readonly events: EventsService,
     ) {}
+    
+    async getPlayerAchievements(tenantId: string, projectId: string, playerId: string) {
+        const achievements = await this.paModel.find({ tenantId, projectId, playerId }).lean();
+        return achievements.map(a => ({
+            id: a._id.toString(),
+            code: a.code,
+            unlockedAt: a.unlockedAt,
+        }));
+    }
+    
+    async unlockAchievement(tenantId: string, projectId: string, playerId: string, code: string) {
+        // Verificar se a conquista existe
+        const achievement = await this.defModel.findOne({ tenantId, projectId, code }).lean();
+        if (!achievement) {
+            throw new NotFoundException('Achievement not found');
+        }
+        
+        try {
+            const unlocked = await this.paModel.create({ 
+                tenantId, 
+                projectId, 
+                playerId, 
+                code, 
+                unlockedAt: new Date() 
+            });
+            
+            await this.events.log({
+                tenantId,
+                projectId,
+                type: 'achievement.unlocked',
+                playerId,
+                payload: {
+                    code,
+                    achievementId: achievement._id.toString()
+                },
+            });
+            
+            return {
+                id: unlocked._id.toString(),
+                code: unlocked.code,
+                unlockedAt: unlocked.unlockedAt
+            };
+        } catch (err: any) {
+            if (err?.code === 11000) {
+                // Conquista já desbloqueada
+                const existing = await this.paModel.findOne({ tenantId, projectId, playerId, code }).lean();
+                if (!existing) {
+                    return {
+                        code,
+                        alreadyUnlocked: true,
+                    } as any;
+                }
+                return {
+                    id: existing._id.toString(),
+                    code: existing.code,
+                    unlockedAt: existing.unlockedAt,
+                    alreadyUnlocked: true,
+                };
+            }
+            throw err;
+        }
+    }
+    
+    async findAll(tenantId: string, projectId: string) {
+        const achievements = await this.defModel.find({ tenantId, projectId }).lean();
+        return achievements.map(a => ({
+            id: a._id.toString(),
+            code: a.code,
+            title: a.title,
+            description: a.description,
+            imageUrl: a.imageUrl,
+            type: a.type,
+            minXp: a.minXp,
+            counterName: a.counterName,
+            counterMin: a.counterMin
+        }));
+    }
 
     /** Cria uma definição de achievement para um projeto */
     async createDef(tenantId: string, dto: CreateAchievementDto) {

@@ -9,7 +9,7 @@ import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 @ApiTags('Progression')
 @ApiHeader({
     name: 'x-tenant-id',
-    description: 'Tenant ID (ex.: demo)',
+    description: 'Tenant ID (e.g. demo)',
     required: true,
 })
 @Controller('progression/curves')
