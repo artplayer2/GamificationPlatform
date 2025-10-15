@@ -4,16 +4,19 @@ import { WebhooksService } from './webhooks.service';
 import { WebhooksController } from './webhooks.controller';
 import { WebhookSubscription, WebhookSubscriptionSchema } from './schemas/webhook-subscription.schema';
 import { WebhookDelivery, WebhookDeliverySchema } from './schemas/webhook-delivery.schema';
-import { WebhooksWorker } from './webhooks.worker';
+import { EventsModule } from '../events/events.module';
+import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 
 @Module({
     imports: [
         MongooseModule.forFeature([
             { name: WebhookSubscription.name, schema: WebhookSubscriptionSchema },
             { name: WebhookDelivery.name, schema: WebhookDeliverySchema },
+            { name: Project.name, schema: ProjectSchema }, // 👈 necessário p/ ensureProject
         ]),
+        forwardRef(() => EventsModule),
     ],
-    providers: [WebhooksService, WebhooksWorker],
+    providers: [WebhooksService],
     controllers: [WebhooksController],
     exports: [WebhooksService],
 })

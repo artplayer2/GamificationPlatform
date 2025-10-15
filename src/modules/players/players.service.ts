@@ -4,15 +4,27 @@ import { Model, Types } from 'mongoose';
 import { Player, PlayerDocument } from './schemas/player.schema';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { EventsService } from '../events/events.service';
+import { Project, ProjectDocument } from '../projects/schemas/project.schema';
 
 @Injectable()
 export class PlayersService {
     constructor(
         @InjectModel(Player.name) private playerModel: Model<PlayerDocument>,
-        @Inject(forwardRef(() => EventsService)) private readonly events: EventsService, // 👈
+        @Inject(forwardRef(() => EventsService)) private readonly events: EventsService,
+        @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
     ) {}
 
+    private async ensureProject(tenantId: string, projectId: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId');
+        if (!projectId) throw new BadRequestException('projectId is required');
+        if (!Types.ObjectId.isValid(projectId)) throw new BadRequestException('Invalid projectId');
+        const exists = await this.projectModel.exists({ _id: projectId, tenantId });
+        if (!exists) throw new NotFoundException('Project not found for this tenant');
+    }
+
     async create(tenantId: string, dto: CreatePlayerDto) {
+        await this.ensureProject(tenantId, dto.projectId);
+
         try {
             const doc = new this.playerModel({
                 tenantId,
@@ -24,7 +36,6 @@ export class PlayersService {
             });
             const saved = await doc.save();
 
-            // 🎯 Evento de domínio
             await this.events.log({
                 tenantId,
                 projectId: dto.projectId,
@@ -72,6 +83,7 @@ export class PlayersService {
     }
 
     async getByUsername(tenantId: string, projectId: string, username: string) {
+        await this.ensureProject(tenantId, projectId);
         const p = await this.playerModel.findOne(
             { tenantId, projectId, username },
             { username: 1, xp: 1, level: 1, wallet: 1, projectId: 1, createdAt: 1 },

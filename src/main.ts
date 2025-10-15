@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import helmet from 'helmet';
+import { WsAdapter } from '@nestjs/platform-ws';
+
 
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -10,6 +12,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
   app.enableCors();
+  app.useWebSocketAdapter(new WsAdapter(app));
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,

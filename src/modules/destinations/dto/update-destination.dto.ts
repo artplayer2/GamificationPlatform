@@ -1,18 +1,48 @@
-import { IsArray, ArrayNotEmpty, IsBoolean, IsIn, IsMongoId, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsArray, ArrayNotEmpty, IsBoolean, IsIn, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
 
 export class UpdateDestinationDto {
-    @IsOptional() @IsIn(['webhook','websocket'])
+    @ApiPropertyOptional({
+        description: 'Destination type',
+        example: 'webhook',
+        enum: ['webhook', 'websocket'],
+    })
+    @IsOptional()
+    @IsIn(['webhook', 'websocket'])
     type?: 'webhook' | 'websocket';
 
-    @IsOptional() @IsArray() @ArrayNotEmpty() @IsString({ each: true })
+    @ApiPropertyOptional({
+        description: 'Updated event types',
+        example: ['*'],
+    })
+    @IsOptional()
+    @IsArray()
+    @ArrayNotEmpty()
+    @IsString({ each: true })
     eventTypes?: string[];
 
-    @IsOptional() @IsBoolean()
+    @ApiPropertyOptional({
+        description: 'Enable or disable the destination',
+        example: false,
+    })
+    @IsOptional()
+    @IsBoolean()
     active?: boolean;
 
-    @IsOptional() @IsUrl({ require_tld: false, require_protocol: true })
+    @ApiPropertyOptional({
+        description: 'Webhook URL (if applicable)',
+        example: 'https://myserver.com/webhooks/receive',
+    })
+    @IsOptional()
+    @IsUrl({ require_tld: false, require_protocol: true })
     url?: string;
 
-    @IsOptional() @IsString() @MinLength(16)
+    @ApiPropertyOptional({
+        description: 'Secret used for HMAC signature',
+        example: 'super_secret_key_123456',
+    })
+    @IsOptional()
+    @IsString()
+    @MinLength(16)
     secret?: string;
 }

@@ -1,49 +1,57 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
-import { CreateProjectDto } from './dto/create-project.dto';
+
+class CreateProjectDto {
+    name!: string;
+    plan?: string;
+    metadata?: Record<string, any>;
+}
 
 @ApiTags('Projects')
-@ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (ex.: demo)', required: true })
+@ApiHeader({
+    name: 'x-tenant-id',
+    description: 'Tenant ID (e.g., demo)',
+    required: true,
+})
 @Controller('projects')
 export class ProjectsController {
     constructor(private readonly projects: ProjectsService) {}
 
+    @ApiOperation({ summary: 'Create project' })
+    @ApiBody({
+        schema: {
+            example: {
+                name: 'My Game',
+                plan: 'free',
+                metadata: { studio: 'Acme' },
+            },
+        },
+    })
+    @ApiResponse({
+        status: 201,
+        description: 'Project created',
+    })
     @Post()
     async create(@Req() req: Request, @Body() body: CreateProjectDto) {
         const tenantId = (req as any).tenantId as string;
-        const dtoWithTenant: any = { ...body, tenantId };
-        // service.create espera 1 argumento (conforme seu erro)
-        return (this.projects as any).create(dtoWithTenant);
+        return this.projects.create(tenantId, body);
     }
 
+    @ApiOperation({ summary: 'List tenant projects' })
+    @ApiResponse({ status: 200, description: 'Array of projects' })
     @Get()
     async list(@Req() req: Request) {
         const tenantId = (req as any).tenantId as string;
-        // chama a que existir no seu service (compat forward-friendly)
-        if (typeof (this.projects as any).list === 'function') {
-            return (this.projects as any).list(tenantId);
-        }
-        if (typeof (this.projects as any).findAllByTenant === 'function') {
-            return (this.projects as any).findAllByTenant(tenantId);
-        }
-        if (typeof (this.projects as any).findAll === 'function') {
-            return (this.projects as any).findAll(tenantId);
-        }
-        // fallback simples
-        return [];
+        return this.projects.list(tenantId);
     }
 
+    @ApiOperation({ summary: 'Get project by id' })
+    @ApiResponse({ status: 200, description: 'Project details' })
     @Get(':id')
     async get(@Req() req: Request, @Param('id') id: string) {
         const tenantId = (req as any).tenantId as string;
-        if (typeof (this.projects as any).get === 'function') {
-            return (this.projects as any).get(tenantId, id);
-        }
-        if (typeof (this.projects as any).findOne === 'function') {
-            return (this.projects as any).findOne(tenantId, id);
-        }
-        return {};
+        return this.projects.get(tenantId, id);
     }
 }

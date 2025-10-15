@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import axios from 'axios';
@@ -7,8 +7,9 @@ import { WebhookSubscription, WebhookSubscriptionDocument } from './schemas/webh
 import { WebhookDelivery, WebhookDeliveryDocument } from './schemas/webhook-delivery.schema';
 import { ListDeliveriesDto } from './dto/list-deliveries.dto';
 import { RedriveDeliveriesDto } from './dto/redrive-deliveries.dto';
+import { Project, ProjectDocument } from '../projects/schemas/project.schema';
 
-const BACKOFF_SECONDS = [10, 30, 120, 600, 3600, 21600]; // 10s, 30s, 2m, 10m, 1h, 6h
+const BACKOFF_SECONDS = [10, 30, 120, 600, 3600, 21600];
 
 @Injectable()
 export class WebhooksService {
@@ -17,12 +18,28 @@ export class WebhooksService {
     constructor(
         @InjectModel(WebhookSubscription.name) private subsModel: Model<WebhookSubscriptionDocument>,
         @InjectModel(WebhookDelivery.name) private deliveriesModel: Model<WebhookDeliveryDocument>,
+        @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
     ) {}
 
+    private async ensureProject(tenantId: string, projectId: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
+        if (!projectId) throw new BadRequestException('projectId is required');
+        if (!Types.ObjectId.isValid(projectId)) throw new BadRequestException('Invalid projectId');
+        const exists = await this.projectModel.exists({ _id: projectId, tenantId });
+        if (!exists) throw new NotFoundException('Project not found for this tenant');
+    }
+
     // ---------- CRUD subscriptions ----------
-    createSubscription(tenantId: string, dto: {
+    async createSubscription(tenantId: string, dto: {
         projectId: string; url: string; secret: string; eventTypes: string[]; active?: boolean;
     }) {
+        await this.ensureProject(tenantId, dto.projectId);
+        if (!dto.url) throw new BadRequestException('url is required');
+        if (!dto.secret || dto.secret.length < 16) throw new BadRequestException('secret must be at least 16 chars');
+        if (!Array.isArray(dto.eventTypes) || dto.eventTypes.length === 0) {
+            throw new BadRequestException('eventTypes must be a non-empty array');
+        }
+
         return this.subsModel.create({
             tenantId,
             projectId: dto.projectId,
@@ -34,24 +51,31 @@ export class WebhooksService {
     }
 
     async getSubscription(tenantId: string, id: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
         return this.subsModel.findOne({ _id: id, tenantId }).lean().exec();
     }
 
-    listSubscriptions(tenantId: string, projectId?: string) {
+    async listSubscriptions(tenantId: string, projectId?: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
+        if (projectId) await this.ensureProject(tenantId, projectId);
         const q: any = { tenantId };
         if (projectId) q.projectId = projectId;
         return this.subsModel.find(q).lean().exec();
     }
 
-    updateSubscription(tenantId: string, id: string, patch: Partial<WebhookSubscription>) {
+    async updateSubscription(tenantId: string, id: string, patch: Partial<WebhookSubscription>) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
+        if (patch.projectId) await this.ensureProject(tenantId, String(patch.projectId));
         return this.subsModel.findOneAndUpdate({ _id: id, tenantId }, { $set: patch }, { new: true }).lean().exec();
     }
 
-    deleteSubscription(tenantId: string, id: string) {
+    async deleteSubscription(tenantId: string, id: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
         return this.subsModel.deleteOne({ _id: id, tenantId }).exec();
     }
 
     async setSubscriptionActive(tenantId: string, id: string, active: boolean) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
         return this.subsModel.findOneAndUpdate(
             { _id: id, tenantId },
             { $set: { active } },
@@ -187,6 +211,9 @@ export class WebhooksService {
 
     // ---------- Listagem / consulta ----------
     async listDeliveries(tenantId: string, q: ListDeliveriesDto) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
+        if (q.projectId) await this.ensureProject(tenantId, q.projectId);
+
         const filter: any = { tenantId };
         if (q.projectId)       filter.projectId = q.projectId;
         if (q.subscriptionId)  filter.subscriptionId = q.subscriptionId;
@@ -210,27 +237,30 @@ export class WebhooksService {
     }
 
     async getDelivery(tenantId: string, id: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
         return this.deliveriesModel.findOne({ _id: id, tenantId }).lean().exec();
     }
 
     // ---------- Redrive ----------
     async redriveDeliveries(tenantId: string, dto: RedriveDeliveriesDto) {
-        const now = new Date();
+        if (!tenantId) throw new BadRequestException('Missing tenantId header');
 
+        const now = new Date();
         if (dto.ids?.length) {
             const ids = dto.ids.filter(Types.ObjectId.isValid).map(id => new Types.ObjectId(id));
             const filter: any = { tenantId, _id: { $in: ids } };
             if (dto.onlyFailedOrDead !== false) {
-                filter.status = { $in: ['pending', 'dead'] }; // reprograma pendentes + dead
+                filter.status = { $in: ['pending', 'dead'] };
             }
             const update: any = { $set: { nextAttemptAt: now, status: 'pending' } };
             if (dto.resetAttempts) update.$set.attempts = 0;
 
             const res = await this.deliveriesModel.updateMany(filter, update).exec();
-            return { matched: res.matchedCount ?? res.modifiedCount, modified: res.modifiedCount };
+            return { matched: (res as any).matchedCount ?? res.modifiedCount, modified: res.modifiedCount };
         }
 
-        // por filtros
+        if (dto.projectId) await this.ensureProject(tenantId, dto.projectId);
+
         const filter: any = { tenantId };
         if (dto.projectId)      filter.projectId = dto.projectId;
         if (dto.subscriptionId) filter.subscriptionId = dto.subscriptionId;

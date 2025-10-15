@@ -16,6 +16,9 @@ import {StoreModule} from "./modules/store/store.module";
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import {ScheduleModule} from "@nestjs/schedule";
 import { DestinationsModule } from './modules/destinations/destinations.module';
+import {TenantProjectModule} from "./modules/common/tenant-project.module";
+import { RealtimeModule } from './modules/realtime/realtime.module';
+
 
 @Module({
   imports: [
@@ -35,7 +38,9 @@ import { DestinationsModule } from './modules/destinations/destinations.module';
     ItemsModule,
     StoreModule,
     WebhooksModule,
-    DestinationsModule
+    DestinationsModule,
+    TenantProjectModule,
+    RealtimeModule,
   ],
 })
 export class AppModule {}
