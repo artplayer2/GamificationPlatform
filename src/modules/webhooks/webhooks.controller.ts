@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody } from '@nestjs/swagger';
 import { WebhooksService } from './webhooks.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
@@ -15,6 +16,17 @@ export class WebhooksController {
 
     // ----- subscriptions -----
     @ApiOperation({ summary: 'Criar assinatura de webhook' })
+    @ApiBody({ description: 'Create a webhook subscription', examples: { default: { value: {
+  "projectId": "66d2a1f5e4aabbccddeeff00",
+  "url": "https://example.tld/webhooks/ingest",
+  "secret": "whsec_9a87c1f2f3a54d0e",
+  "eventTypes": [
+    "player.created",
+    "player.levelup",
+    "store.purchase.succeeded"
+  ],
+  "active": true
+} } } })
     @Post('subscriptions')
     create(@Req() req: Request, @Body() dto: CreateSubscriptionDto) {
         const tenantId = (req as any).tenantId as string;

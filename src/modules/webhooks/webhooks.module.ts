@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { WebhooksService } from './webhooks.service';
+import { WebhooksWorker } from './webhooks.worker';
 import { WebhooksController } from './webhooks.controller';
 import { WebhookSubscription, WebhookSubscriptionSchema } from './schemas/webhook-subscription.schema';
 import { WebhookDelivery, WebhookDeliverySchema } from './schemas/webhook-delivery.schema';
@@ -16,7 +17,7 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
         ]),
         forwardRef(() => EventsModule),
     ],
-    providers: [WebhooksService],
+    providers: [WebhooksService, WebhooksWorker],
     controllers: [WebhooksController],
     exports: [WebhooksService],
 })

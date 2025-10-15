@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { AwardXpDto } from './dto/award-xp.dto';
 import { Player, PlayerDocument } from '../players/schemas/player.schema';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiBody } from '@nestjs/swagger';
 import { XpTx, XpTxDocument } from './schemas/xp-tx.schema';
 import { ProgressionCurve, ProgressionCurveDocument } from './schemas/curve.schema';
 import { AchievementsService } from '../achievements/achievements.service';
@@ -22,6 +23,12 @@ export class ProgressionController {
         @Inject(forwardRef(() => EventsService)) private readonly events: EventsService,
     ) {}
 
+    @ApiBody({ description: "Award XP to a player", examples: { default: { value: {
+  "playerId": "66d2b3c4e4aabbccddeeff11",
+  "amount": 250,
+  "reason": "quest:starter",
+  "idempotencyKey": "xp-00001-abc"
+} } } })
     @Post('xp')
     async award(@Req() req: Request, @Body() body: AwardXpDto) {
         const tenantId = (req as any).tenantId as string;
@@ -86,6 +93,16 @@ export class ProgressionController {
                 type: 'player.level.updated',
                 playerId: updated._id.toString(),
                 payload: { previousLevel: prevLevel, newLevel: level, totalXp: updated.xp },
+            });
+        }
+        if (level !== prevLevel) {
+            // Alias event for consumers expecting 'player.levelup'
+            await this.events.log({
+                tenantId,
+                projectId: updated.projectId.toString(),
+                type: 'player.levelup',
+                playerId: updated._id.toString(),
+                payload: { from: prevLevel, to: level, totalXp: updated.xp },
             });
         }
 

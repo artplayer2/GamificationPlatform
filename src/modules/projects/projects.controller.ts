@@ -33,6 +33,10 @@ export class ProjectsController {
         status: 201,
         description: 'Project created',
     })
+    @ApiBody({ description: "Create a new project", examples: { default: { value: {
+  "name": "demo",
+  "plan": "free"
+} } } })
     @Post()
     async create(@Req() req: Request, @Body() body: CreateProjectDto) {
         const tenantId = (req as any).tenantId as string;

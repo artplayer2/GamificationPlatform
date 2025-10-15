@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiQuery, ApiTags, ApiBody } from '@nestjs/swagger';
 import { StoreService } from './store.service';
 import { CreateSkuDto } from './dto/create-sku.dto';
 import { PurchaseDto } from './dto/purchase.dto';
@@ -28,6 +28,14 @@ export class StoreController {
         return this.svc.listSkus(tenantId, projectId);
     }
 
+    @ApiBody({ description: "Place an idempotent store purchase order", examples: { default: { value: {
+  "projectId": "66d2a1f5e4aabbccddeeff00",
+  "skuCode": "bundle_potions_small",
+  "playerId": "66d2b3c4e4aabbccddeeff11",
+  "qty": 1,
+  "idempotencyKey": "order-0001-a",
+  "reason": "promo:launch"
+} } } })
     @Post('purchase')
     purchase(@Req() req: Request, @Body() body: PurchaseDto) {
         const tenantId = (req as any).tenantId as string;
