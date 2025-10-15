@@ -15,6 +15,7 @@ import {ItemsModule} from "./modules/items/items.module";
 import {StoreModule} from "./modules/store/store.module";
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import {ScheduleModule} from "@nestjs/schedule";
+import { DestinationsModule } from './modules/destinations/destinations.module';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import {ScheduleModule} from "@nestjs/schedule";
     QuestsModule,
     ItemsModule,
     StoreModule,
-    WebhooksModule
+    WebhooksModule,
+    DestinationsModule
   ],
 })
 export class AppModule {}
