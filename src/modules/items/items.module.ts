@@ -8,6 +8,8 @@ import { ItemTx, ItemTxSchema } from './schemas/item-tx.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { Player, PlayerSchema } from '../players/schemas/player.schema';
 import { EventsModule } from '../events/events.module';
+import { PlansModule } from '../plans/plans.module';
+import { ApiKeysModule } from '../apikeys/apikeys.module';
 
 @Module({
     imports: [
@@ -19,6 +21,8 @@ import { EventsModule } from '../events/events.module';
             { name: Player.name, schema: PlayerSchema },
         ]),
         EventsModule,
+        PlansModule,
+        ApiKeysModule,
     ],
     controllers: [ItemsController],
     providers: [ItemsService],

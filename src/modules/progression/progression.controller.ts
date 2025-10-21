@@ -1,19 +1,23 @@
-import { Body, Controller, Get, Param, Post, Req, Inject, forwardRef } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, Inject, forwardRef, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Request } from 'express';
 import { Model } from 'mongoose';
 import { AwardXpDto } from './dto/award-xp.dto';
 import { Player, PlayerDocument } from '../players/schemas/player.schema';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiTags, ApiSecurity } from '@nestjs/swagger';
 import { ApiBody } from '@nestjs/swagger';
 import { XpTx, XpTxDocument } from './schemas/xp-tx.schema';
 import { ProgressionCurve, ProgressionCurveDocument } from './schemas/curve.schema';
 import { AchievementsService } from '../achievements/achievements.service';
 import { EventsService } from '../events/events.service';
+import { ApiKeyAuthGuard } from '../common/guards/apikey.guard';
 
 @ApiTags('Progression')
 @ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (e.g. demo)', required: true })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
 @Controller('progression')
+@UseGuards(ApiKeyAuthGuard)
 export class ProgressionController {
     constructor(
         @InjectModel(Player.name) private playerModel: Model<PlayerDocument>,

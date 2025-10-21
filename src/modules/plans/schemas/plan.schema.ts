@@ -25,6 +25,9 @@ class PlanLimits {
 
   @Prop({ type: Number, default: 100000 })
   storageMaxPlayers!: number;
+
+  @Prop({ type: Number, default: 10 })
+  projectsMaxPerTenant!: number;
 }
 
 const PlanLimitsSchema = SchemaFactory.createForClass(PlanLimits);

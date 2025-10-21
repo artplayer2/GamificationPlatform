@@ -6,6 +6,7 @@ import { PlayerAchievement, PlayerAchievementDocument } from './schemas/player-a
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { Project, ProjectDocument } from '../projects/schemas/project.schema';
 import { EventsService } from '../events/events.service';
+import { PlansService } from '../plans/plans.service';
 
 @Injectable()
 export class AchievementsService {
@@ -14,9 +15,14 @@ export class AchievementsService {
         @InjectModel(PlayerAchievement.name) private paModel: Model<PlayerAchievementDocument>,
         @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
         private readonly events: EventsService,
+        private readonly plans: PlansService,
     ) {}
     
     async getPlayerAchievements(tenantId: string, projectId: string, playerId: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) throw new BadRequestException('Achievements feature disabled by plan');
         const achievements = await this.paModel.find({ tenantId, projectId, playerId }).lean();
         return achievements.map(a => ({
             id: a._id.toString(),
@@ -26,6 +32,10 @@ export class AchievementsService {
     }
     
     async unlockAchievement(tenantId: string, projectId: string, playerId: string, code: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) throw new BadRequestException('Achievements feature disabled by plan');
         // Verificar se a conquista existe
         const achievement = await this.defModel.findOne({ tenantId, projectId, code }).lean();
         if (!achievement) {
@@ -79,6 +89,10 @@ export class AchievementsService {
     }
     
     async findAll(tenantId: string, projectId: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) throw new BadRequestException('Achievements feature disabled by plan');
         const achievements = await this.defModel.find({ tenantId, projectId }).lean();
         return achievements.map(a => ({
             id: a._id.toString(),
@@ -105,6 +119,9 @@ export class AchievementsService {
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
 
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) throw new BadRequestException('Achievements feature disabled by plan');
+
         try {
             return await this.defModel.create({
                 tenantId,
@@ -128,6 +145,10 @@ export class AchievementsService {
 
     /** Lista definições com paginação por cursor e filtro opcional por code */
     async listDefsPaged(tenantId: string, params: { projectId: string; code?: string; after?: string; limit?: number }) {
+        const project = await this.projectModel.findOne({ _id: params.projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) throw new BadRequestException('Achievements feature disabled by plan');
         const filter: any = { tenantId, projectId: params.projectId };
         if (params.code) filter.code = params.code;
 
@@ -165,6 +186,10 @@ export class AchievementsService {
 
     /** Desbloqueia conquistas por XP e loga eventos */
     async checkUnlocksOnXp(tenantId: string, projectId: string, playerId: string, newXp: number) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) return [];
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) return [];
         const candidates = await this.defModel.find({
             tenantId, projectId, type: 'xp_threshold', minXp: { $lte: newXp },
         }).lean();
@@ -191,6 +216,10 @@ export class AchievementsService {
 
     /** Achievements do jogador (com metadados) */
     async getPlayerAchievementsDetailed(tenantId: string, projectId: string, playerId: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) throw new BadRequestException('Achievements feature disabled by plan');
         const unlocks = await this.paModel.find({ tenantId, projectId, playerId }).lean();
         if (!unlocks.length) return [];
 
@@ -213,6 +242,10 @@ export class AchievementsService {
 
     /** Grant manual: concede conquista diretamente (idempotente) + evento */
     async grantDirect(tenantId: string, projectId: string, playerId: string, code: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.achievementsEnabled) throw new BadRequestException('Achievements feature disabled by plan');
         const def = await this.defModel.findOne({ tenantId, projectId, code }).lean();
         if (!def) throw new NotFoundException('Achievement definition not found');
 

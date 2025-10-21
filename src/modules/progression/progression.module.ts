@@ -7,6 +7,8 @@ import { ProgressionCurve, ProgressionCurveSchema } from './schemas/curve.schema
 import { ProgressionCurvesController } from './curves.controller';
 import { AchievementsModule } from '../achievements/achievements.module';
 import { EventsModule } from '../events/events.module';
+import { ApiKeysModule } from '../apikeys/apikeys.module';
+import { ApiKeyAuthGuard } from '../common/guards/apikey.guard';
 
 @Module({
     imports: [
@@ -17,7 +19,9 @@ import { EventsModule } from '../events/events.module';
         ]),
         AchievementsModule,
         forwardRef(() => EventsModule),
+        ApiKeysModule,
     ],
     controllers: [ProgressionController, ProgressionCurvesController],
+    providers: [ApiKeyAuthGuard],
 })
 export class ProgressionModule {}

@@ -11,6 +11,8 @@ import { ProgressionCurve, ProgressionCurveSchema } from '../progression/schemas
 import { AchievementsModule } from '../achievements/achievements.module';
 import { EventsModule } from '../events/events.module';
 import { ItemsModule } from '../items/items.module';
+import { PlansModule } from '../plans/plans.module';
+import { ApiKeysModule } from '../apikeys/apikeys.module';
 
 @Module({
     imports: [
@@ -25,6 +27,8 @@ import { ItemsModule } from '../items/items.module';
         AchievementsModule,
         EventsModule,
         ItemsModule,
+        PlansModule,
+        ApiKeysModule,
     ],
     controllers: [QuestsController],
     providers: [QuestsService],

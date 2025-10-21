@@ -10,6 +10,7 @@ import { ConsumeItemDto } from './dto/consume-item.dto';
 import { Project, ProjectDocument } from '../projects/schemas/project.schema';
 import { Player, PlayerDocument } from '../players/schemas/player.schema';
 import { EventsService } from '../events/events.service';
+import { PlansService } from '../plans/plans.service';
 
 @Injectable()
 export class ItemsService {
@@ -20,12 +21,16 @@ export class ItemsService {
         @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
         @InjectModel(Player.name) private playerModel: Model<PlayerDocument>,
         private readonly events: EventsService,
+        private readonly plans: PlansService,
     ) {}
 
     // ====== Definições ======
     async createDef(tenantId: string, dto: CreateItemDefDto) {
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
+
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
 
         try {
             return await this.defModel.create({
@@ -47,11 +52,19 @@ export class ItemsService {
     }
 
     async listDefs(tenantId: string, projectId: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
         return this.defModel.find({ tenantId, projectId }).sort({ code: 1 }).lean();
     }
 
     // ====== Grant ======
     async grant(tenantId: string, dto: GrantItemDto) {
+        const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
         // idempotência
         const existingTx = await this.txModel.findOne({ tenantId, idempotencyKey: dto.idempotencyKey }).lean();
         if (existingTx) {
@@ -95,6 +108,10 @@ export class ItemsService {
 
     // ====== Consume ======
     async consume(tenantId: string, dto: ConsumeItemDto) {
+        const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
         const existingTx = await this.txModel.findOne({ tenantId, idempotencyKey: dto.idempotencyKey }).lean();
         if (existingTx) {
             const inv = await this.piModel.findOne({ tenantId, projectId: dto.projectId, playerId: dto.playerId, code: dto.code }).lean();
@@ -139,6 +156,10 @@ export class ItemsService {
 
     // ====== Listar inventário do player ======
     async listPlayerItems(tenantId: string, projectId: string, playerId: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
         const items = await this.piModel.find({ tenantId, projectId, playerId }).lean();
         return items.map(i => ({ code: i.code, qty: i.qty }));
     }

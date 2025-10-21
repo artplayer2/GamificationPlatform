@@ -7,6 +7,7 @@ import { WebhookSubscription, WebhookSubscriptionSchema } from './schemas/webhoo
 import { WebhookDelivery, WebhookDeliverySchema } from './schemas/webhook-delivery.schema';
 import { EventsModule } from '../events/events.module';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
+import { ApiKeysModule } from '../apikeys/apikeys.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
             { name: Project.name, schema: ProjectSchema }, // 👈 necessário p/ ensureProject
         ]),
         forwardRef(() => EventsModule),
+        ApiKeysModule,
     ],
     providers: [WebhooksService, WebhooksWorker],
     controllers: [WebhooksController],

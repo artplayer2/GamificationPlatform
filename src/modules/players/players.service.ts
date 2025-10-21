@@ -5,6 +5,7 @@ import { Player, PlayerDocument } from './schemas/player.schema';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { EventsService } from '../events/events.service';
 import { Project, ProjectDocument } from '../projects/schemas/project.schema';
+import { PlansService } from '../plans/plans.service';
 import * as moment from 'moment';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class PlayersService {
         @InjectModel(Player.name) private playerModel: Model<PlayerDocument>,
         @Inject(forwardRef(() => EventsService)) private readonly events: EventsService,
         @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+        private readonly plans: PlansService,
     ) {}
 
     private async ensureProject(tenantId: string, projectId: string) {
@@ -25,6 +27,15 @@ export class PlayersService {
 
     async create(tenantId: string, dto: CreatePlayerDto) {
         await this.ensureProject(tenantId, dto.projectId);
+
+        const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }, { plan: 1 }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        const currentCount = await this.playerModel.countDocuments({ tenantId, projectId: dto.projectId });
+        const maxPlayers = plan.limits?.storageMaxPlayers ?? Number.MAX_SAFE_INTEGER;
+        if (currentCount >= maxPlayers) {
+            throw new BadRequestException('Storage limit exceeded: players');
+        }
 
         try {
             const doc = new this.playerModel({

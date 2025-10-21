@@ -1,10 +1,11 @@
-import { BadRequestException, Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AchievementsService } from './achievements.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
-import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { GrantAchievementDto } from './dto/grant-achievement.dto';
 import { AchievementsQueryDto } from './dto/achievements-query.dto';
+import { ApiKeyAuthGuard } from '../common/guards/apikey.guard';
 
 @ApiTags('Achievements')
 @ApiHeader({
@@ -12,7 +13,10 @@ import { AchievementsQueryDto } from './dto/achievements-query.dto';
     description: 'Tenant ID (e.g. demo)',
     required: true,
 })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
 @Controller('achievements')
+@UseGuards(ApiKeyAuthGuard)
 export class AchievementsController {
     constructor(private readonly svc: AchievementsService) {}
 

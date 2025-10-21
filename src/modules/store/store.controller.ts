@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiHeader, ApiQuery, ApiTags, ApiBody } from '@nestjs/swagger';
+import { ApiHeader, ApiQuery, ApiTags, ApiBody, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { StoreService } from './store.service';
 import { CreateSkuDto } from './dto/create-sku.dto';
 import { PurchaseDto } from './dto/purchase.dto';
+import { PlayerAuthGuard } from '../common/guards/player.guard';
+import { ApiKeyAuthGuard } from '../common/guards/apikey.guard';
 
 @ApiTags('Store')
 @ApiHeader({
@@ -16,6 +18,9 @@ export class StoreController {
     constructor(private readonly svc: StoreService) {}
 
     @Post('skus')
+    @ApiSecurity('Tenant')
+    @ApiSecurity('ApiKey')
+    @UseGuards(ApiKeyAuthGuard)
     createSku(@Req() req: Request, @Body() body: CreateSkuDto) {
         const tenantId = (req as any).tenantId as string;
         return this.svc.createSku(tenantId, body);
@@ -23,6 +28,9 @@ export class StoreController {
 
     @Get('skus')
     @ApiQuery({ name: 'projectId', required: true })
+    @ApiSecurity('Tenant')
+    @ApiSecurity('ApiKey')
+    @UseGuards(ApiKeyAuthGuard)
     listSkus(@Req() req: Request, @Query('projectId') projectId: string) {
         const tenantId = (req as any).tenantId as string;
         return this.svc.listSkus(tenantId, projectId);
@@ -37,6 +45,8 @@ export class StoreController {
   "reason": "promo:launch"
 } } } })
     @Post('purchase')
+    @ApiBearerAuth()
+    @UseGuards(PlayerAuthGuard)
     purchase(@Req() req: Request, @Body() body: PurchaseDto) {
         const tenantId = (req as any).tenantId as string;
         return this.svc.purchase(tenantId, body);

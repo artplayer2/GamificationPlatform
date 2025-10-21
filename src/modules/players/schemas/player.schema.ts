@@ -20,6 +20,16 @@ export class Player {
     @Prop({ default: 1 })
     level!: number;
 
+    // Credenciais e dados pessoais (MVP)
+    @Prop({ lowercase: true, trim: true })
+    email?: string;
+
+    @Prop()
+    passwordHash?: string; // pbkdf2 format: algo$iter$salt$hash
+
+    @Prop({ type: Object, default: {} })
+    profile?: { name?: string; avatarUrl?: string; bio?: string };
+
     @Prop({
         type: {
             soft: { type: Number, default: 0 },
@@ -44,3 +54,5 @@ export const PlayerSchema = SchemaFactory.createForClass(Player);
 
 // Unicidade por tenant+project+username
 PlayerSchema.index({ tenantId: 1, projectId: 1, username: 1 }, { unique: true });
+// Unicidade por tenant+project+email (só quando email existir)
+PlayerSchema.index({ tenantId: 1, projectId: 1, email: 1 }, { unique: true, sparse: true });

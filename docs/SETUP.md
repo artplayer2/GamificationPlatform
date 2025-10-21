@@ -1,30 +1,23 @@
-# Setup
+# Development Setup
 
-## Requirements
-- Node.js 18+
-- MongoDB 6+
-- npm
+- Prerequisites:
+  - Node.js 18+
+  - MongoDB running locally or a connection string in `MONGO_URI`
 
-## Install
-```bash
-npm install
-```
+- Install dependencies:
+  - `npm install`
 
-## Run (dev)
-```bash
-npm run start:dev
-# http://localhost:3000/v1
-# Swagger: http://localhost:3000/v1/docs
-```
+- Environment variables:
+  - See `docs/ENV.md`. Minimum:
+    - `MONGO_URI` (e.g., `mongodb://localhost:27017/gamification`)
+    - `PLAYER_JWT_SECRET` (e.g., `dev-player-secret`)
+    - `PLAYER_JWT_EXPIRES` (e.g., `1h` or `3600` seconds)
+    - `PLAYER_RPS_DEFAULT` (e.g., `300` per minute)
 
-## Build & Run (prod)
-```bash
-npm run build
-# Option A (Nest CLI):
-npm run start
-# Option B (Node on compiled output):
-node dist/src/main.js
-```
+- Run in development:
+  - `npm run start:dev`
+  - Swagger UI: `http://localhost:3000/v1/docs`
 
-> Nota: se você já estiver com um servidor rodando (porta 3000 ocupada), encerre o processo antes de iniciar outro. Em Windows:
-> `netstat -ano | findstr LISTENING | findstr :3000` e depois `taskkill /PID <PID> /F`.
+- Common issues:
+  - If Swagger shows connection refused, ensure MongoDB is running and `MONGO_URI` is reachable.
+  - If JWT expires parsing fails, use numeric seconds (e.g., `3600`).

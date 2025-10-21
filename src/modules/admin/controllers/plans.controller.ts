@@ -1,10 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { PlansService, CreatePlanInput, UpdatePlanInput } from '../../plans/plans.service';
+import { AdminApiKeyAuthGuard } from '../../common/guards/admin.guard';
 
 @ApiTags('Admin - Plans')
 @ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (e.g. demo)', required: true })
 @ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
+@UseGuards(AdminApiKeyAuthGuard)
 @Controller('admin/plans')
 export class AdminPlansController {
   constructor(private readonly plans: PlansService) {}

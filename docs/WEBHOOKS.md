@@ -24,6 +24,7 @@ node receiver.js
 ```
 ## Subscribe
 `POST /v1/webhooks/subscriptions`
+Headers required: `x-tenant-id` and `x-api-key` (admin/tenant-level key).
 ```json
 {
   "projectId":"<PROJECT_ID>",

@@ -12,6 +12,7 @@ import { ProgressionCurve, ProgressionCurveDocument } from '../progression/schem
 import { AchievementsService } from '../achievements/achievements.service';
 import { EventsService } from '../events/events.service';
 import { ItemsService } from '../items/items.service';
+import { PlansService } from '../plans/plans.service';
 
 @Injectable()
 export class QuestsService {
@@ -25,12 +26,15 @@ export class QuestsService {
         private readonly achievements: AchievementsService,
         private readonly events: EventsService,
         private readonly items: ItemsService, // 👈 novo
+        private readonly plans: PlansService,
     ) {}
 
     // ====== CRUD básico de definição ======
     async createDef(tenantId: string, dto: CreateQuestDto) {
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.questsEnabled) throw new BadRequestException('Quests feature disabled by plan');
 
         try {
             return await this.defModel.create({
@@ -54,6 +58,10 @@ export class QuestsService {
     }
 
     async listDefsPaged(tenantId: string, params: { projectId: string; after?: string; limit?: number; code?: string }) {
+        const project = await this.projectModel.findOne({ _id: params.projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.questsEnabled) throw new BadRequestException('Quests feature disabled by plan');
         const filter: any = { tenantId, projectId: params.projectId };
         if (params.code) filter.code = params.code;
         if (params.after !== undefined && params.after !== null && params.after !== '') {
@@ -88,6 +96,8 @@ export class QuestsService {
         // 0) valida projeto e player
         const project = await this.projectModel.findOne({ _id: body.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.questsEnabled) throw new BadRequestException('Quests feature disabled by plan');
 
         const player = await this.playerModel.findOne({ _id: playerId, tenantId });
         if (!player) throw new NotFoundException('Player not found');

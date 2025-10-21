@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { InventoryService } from './inventory.service';
 import { WalletOpDto } from './dto/wallet.dto';
 import { WalletTxQueryDto } from './dto/wallet-tx-query.dto';
-import { ApiHeader, ApiQuery, ApiTags, ApiBody } from '@nestjs/swagger';
+import { ApiHeader, ApiQuery, ApiTags, ApiBody, ApiSecurity } from '@nestjs/swagger';
+import { ApiKeyAuthGuard } from '../common/guards/apikey.guard';
 
 @ApiTags('Inventory')
 @ApiHeader({
@@ -11,7 +12,10 @@ import { ApiHeader, ApiQuery, ApiTags, ApiBody } from '@nestjs/swagger';
     description: 'Tenant ID (e.g. demo)',
     required: true,
 })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
 @Controller('inventory')
+@UseGuards(ApiKeyAuthGuard)
 export class InventoryController {
     constructor(private readonly inv: InventoryService) {}
 

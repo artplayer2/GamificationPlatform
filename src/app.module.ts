@@ -21,6 +21,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { ApiKeysModule } from './modules/apikeys/apikeys.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ClientModule } from './modules/client/client.module';
+import { PlayerAuthModule } from './modules/player-auth/player-auth.module';
 
 
 @Module({
@@ -47,6 +48,7 @@ import { ClientModule } from './modules/client/client.module';
     ApiKeysModule,
     AdminModule,
     ClientModule,
+    PlayerAuthModule,
   ],
 })
 export class AppModule {}

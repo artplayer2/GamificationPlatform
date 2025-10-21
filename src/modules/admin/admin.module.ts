@@ -2,16 +2,21 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AdminMetricsController } from './controllers/metrics.controller';
 import { AdminPlansController } from './controllers/plans.controller';
+import { AdminProjectsController } from './controllers/projects.controller';
 import { AdminMetricsService } from './services/metrics.service';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { Player, PlayerSchema } from '../players/schemas/player.schema';
 import { Event, EventSchema } from '../events/schemas/event.schema';
 import { WebhookDelivery, WebhookDeliverySchema } from '../webhooks/schemas/webhook-delivery.schema';
 import { PlansModule } from '../plans/plans.module';
+import { ProjectsModule } from '../projects/projects.module';
+import { ApiKeysModule } from '../apikeys/apikeys.module';
 
 @Module({
   imports: [
     PlansModule,
+    ProjectsModule,
+    ApiKeysModule,
     MongooseModule.forFeature([
       { name: Project.name, schema: ProjectSchema },
       { name: Player.name, schema: PlayerSchema },
@@ -19,7 +24,7 @@ import { PlansModule } from '../plans/plans.module';
       { name: WebhookDelivery.name, schema: WebhookDeliverySchema },
     ]),
   ],
-  controllers: [AdminMetricsController, AdminPlansController],
+  controllers: [AdminMetricsController, AdminPlansController, AdminProjectsController],
   providers: [AdminMetricsService],
 })
 export class AdminModule {}

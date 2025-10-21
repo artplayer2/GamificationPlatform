@@ -10,6 +10,7 @@ import { Project, ProjectDocument } from '../projects/schemas/project.schema';
 import { Player, PlayerDocument } from '../players/schemas/player.schema';
 import { ItemsService } from '../items/items.service';
 import { EventsService } from '../events/events.service';
+import { PlansService } from '../plans/plans.service';
 
 @Injectable()
 export class StoreService {
@@ -21,12 +22,15 @@ export class StoreService {
         @InjectModel(Player.name) private playerModel: Model<PlayerDocument>,
         private readonly items: ItemsService,
         private readonly events: EventsService,
+        private readonly plans: PlansService,
     ) {}
 
     // ======= SKUs =======
     async createSku(tenantId: string, dto: CreateSkuDto) {
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.storeEnabled) throw new BadRequestException('Store feature disabled by plan');
         if ((dto.priceSoft ?? 0) <= 0 && (dto.priceHard ?? 0) <= 0) {
             throw new BadRequestException('At least one price must be > 0');
         }
@@ -50,6 +54,10 @@ export class StoreService {
     }
 
     async listSkus(tenantId: string, projectId: string) {
+        const project = await this.projectModel.findOne({ _id: projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.storeEnabled) throw new BadRequestException('Store feature disabled by plan');
         return this.skuModel.find({ tenantId, projectId }).sort({ code: 1 }).lean();
     }
 
@@ -70,6 +78,8 @@ export class StoreService {
 
         const project = await this.projectModel.findOne({ _id: dto.projectId, tenantId }).lean();
         if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.storeEnabled) throw new BadRequestException('Store feature disabled by plan');
 
         // ⚠️ busca lean só para validar o projectId
         const playerLean = await this.playerModel.findOne({ _id: dto.playerId, tenantId }, { projectId: 1, wallet: 1 }).lean();

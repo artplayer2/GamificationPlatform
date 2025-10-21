@@ -1,10 +1,11 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiTags, ApiSecurity } from '@nestjs/swagger';
 import { QuestsService } from './quests.service';
 import { CreateQuestDto } from './dto/create-quest.dto';
 import { CompleteQuestDto } from './dto/complete-quest.dto';
 import { QuestsQueryDto } from './dto/quests-query.dto';
+import { ApiKeyAuthGuard } from '../common/guards/apikey.guard';
 
 @ApiTags('Quests')
 @ApiHeader({
@@ -12,7 +13,10 @@ import { QuestsQueryDto } from './dto/quests-query.dto';
     description: 'Tenant ID (e.g. demo)',
     required: true,
 })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
 @Controller('quests')
+@UseGuards(ApiKeyAuthGuard)
 export class QuestsController {
     constructor(private readonly svc: QuestsService) {}
 

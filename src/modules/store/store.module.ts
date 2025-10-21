@@ -9,6 +9,9 @@ import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { Player, PlayerSchema } from '../players/schemas/player.schema';
 import { ItemsModule } from '../items/items.module';
 import { EventsModule } from '../events/events.module';
+import { PlansModule } from '../plans/plans.module';
+import { ApiKeysModule } from '../apikeys/apikeys.module';
+import { PlayerAuthModule } from '../player-auth/player-auth.module';
 
 @Module({
     imports: [
@@ -21,6 +24,9 @@ import { EventsModule } from '../events/events.module';
         ]),
         ItemsModule,
         EventsModule,
+        PlansModule,
+        ApiKeysModule,
+        PlayerAuthModule,
     ],
     controllers: [StoreController],
     providers: [StoreService],

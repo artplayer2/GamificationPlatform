@@ -16,6 +16,7 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
   - 🛰️ [WebSocket Realtime](./docs/WS.md)
   - 📬 [Webhooks](./docs/WEBHOOKS.md)
   - 🪪 [API Headers](./docs/API_HEADERS.md)
+  - 🧑‍🎮 [Player Auth & Profile](./docs/PLAYER_AUTH.md)
   - 🆘 [Troubleshooting](./docs/TROUBLESHOOTING.md)
   - 🤝 [Contributing & Commits](./docs/CONTRIBUTING.md)
 
@@ -137,6 +138,11 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
 - 🔌 [REST Examples](./docs/REST.md)
 - 🛰️ [WebSocket Realtime](./docs/WS.md)
 - 📬 [Webhooks](./docs/WEBHOOKS.md)
+- 🗺️ [Architecture](./docs/ARCHITECTURE.md)
+- 🪪 [API Keys](./docs/API_KEYS.md)
+- 🧭 [Plans](./docs/PLANS.md)
+- 🚦 [Limits & Quotas](./docs/LIMITS.md)
+- 🧑‍🎮 [Player Auth & Profile](./docs/PLAYER_AUTH.md)
 - 🆘 [Troubleshooting](./docs/TROUBLESHOOTING.md)
 - 🤝 [Contributing & Commits](./docs/CONTRIBUTING.md)
 
@@ -151,6 +157,7 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
 - Realtime: conectar em `ws://localhost:3000/realtime` com `x-api-key`, `x-project-id`, `x-tenant-id`; enviar `{"action":"subscribe","eventTypes":["*"]}` e validar mensagens.
 - Webhooks: criar assinatura em `POST /v1/webhooks/subscriptions` e checar entregas.
 - Métricas: `GET /v1/admin/metrics` e `GET /v1/client/metrics/project/:projectId` (este requer `x-api-key`).
+ - Métricas: `GET /v1/admin/metrics` (requer `x-tenant-id` e `x-api-key` de admin) e `GET /v1/client/metrics/project/:projectId` (requer `x-tenant-id` e `x-api-key` de projeto).
 
 > Dica: se você alterar o código enquanto o servidor está rodando sem `--watch`, reinicie o processo para refletir as mudanças. Se a porta `3000` estiver ocupada, feche o terminal que iniciou `npm run start` ou mate o processo (veja Troubleshooting).
 

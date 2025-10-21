@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+  <style>
+    .box { fill:#f8fafb; stroke:#374151; stroke-width:2; rx:8; ry:8; }
+    .title { fill:#111827; font-family:Segoe UI, Arial, sans-serif; font-size:18px; font-weight:600; }
+    .text { fill:#1f2937; font-family:Segoe UI, Arial, sans-serif; font-size:16px; }
+    .arrow { stroke:#374151; stroke-width:2; marker-end:url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151" />
+    </marker>
+  </defs>
+
+  <!-- Request -->
+  <rect class="box" x="40" y="60" width="220" height="120" />
+  <text class="title" x="60" y="90">HTTP Request</text>
+  <text class="text" x="60" y="120">Headers: x-tenant-id /</text>
+  <text class="text" x="60" y="145">Authorization: Bearer / x-api-key</text>
+
+  <!-- Middlewares -->
+  <rect class="box" x="300" y="40" width="260" height="160" />
+  <text class="title" x="320" y="70">Middlewares</text>
+  <text class="text" x="320" y="100">• TenantContextMiddleware</text>
+  <text class="text" x="320" y="125">• TenantRateLimitMiddleware</text>
+  <text class="text" x="320" y="150">• RFC7807 Error Filter</text>
+
+  <!-- Guards -->
+  <rect class="box" x="600" y="40" width="220" height="160" />
+  <text class="title" x="620" y="70">Guards</text>
+  <text class="text" x="620" y="100">• ApiKeyAuthGuard</text>
+  <text class="text" x="620" y="125">• PlayerBearerGuard</text>
+
+  <!-- Controller -->
+  <rect class="box" x="860" y="40" width="260" height="160" />
+  <text class="title" x="880" y="70">Controller</text>
+  <text class="text" x="880" y="100">• Validates DTOs</text>
+  <text class="text" x="880" y="125">• Delegates to Services</text>
+
+  <!-- Services -->
+  <rect class="box" x="300" y="250" width="260" height="160" />
+  <text class="title" x="320" y="280">Service Layer</text>
+  <text class="text" x="320" y="310">• Business logic</text>
+  <text class="text" x="320" y="335">• Idempotent ops</text>
+
+  <!-- EventsService -->
+  <rect class="box" x="600" y="250" width="220" height="160" />
+  <text class="title" x="620" y="280">EventsService</text>
+  <text class="text" x="620" y="310">• Persist event</text>
+  <text class="text" x="620" y="335">• Publish WS</text>
+  <text class="text" x="620" y="360">• Enqueue webhook</text>
+
+  <!-- Sinks -->
+  <rect class="box" x="860" y="230" width="260" height="90" />
+  <text class="title" x="880" y="260">MongoDB</text>
+  <text class="text" x="880" y="285">Collections with timestamps</text>
+
+  <rect class="box" x="860" y="340" width="260" height="90" />
+  <text class="title" x="880" y="370">WebSocket</text>
+  <text class="text" x="880" y="395">Broadcast by project</text>
+
+  <rect class="box" x="860" y="450" width="260" height="50" />
+  <text class="title" x="880" y="480">Webhooks</text>
+
+  <!-- Arrows -->
+  <line class="arrow" x1="260" y1="120" x2="300" y2="120" />
+  <line class="arrow" x1="560" y1="120" x2="600" y2="120" />
+  <line class="arrow" x1="820" y1="120" x2="860" y2="120" />
+  <line class="arrow" x1="990" y1="200" x2="990" y2="250" />
+  <line class="arrow" x1="560" y1="330" x2="600" y2="330" />
+  <line class="arrow" x1="820" y1="285" x2="860" y2="275" />
+  <line class="arrow" x1="820" y1="365" x2="860" y2="385" />
+  <line class="arrow" x1="820" y1="385" x2="860" y2="475" />
+
+  <!-- Legend -->
+  <text class="text" x="40" y="500">Flow: Request → Middlewares → Guards → Controller → Service → EventsService → MongoDB/WS/Webhooks.</text>
+</svg>

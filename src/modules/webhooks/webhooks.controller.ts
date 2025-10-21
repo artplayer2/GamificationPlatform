@@ -1,15 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiBody } from '@nestjs/swagger';
 import { WebhooksService } from './webhooks.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { ListDeliveriesDto } from './dto/list-deliveries.dto';
 import { RedriveDeliveriesDto } from './dto/redrive-deliveries.dto';
+import { AdminApiKeyAuthGuard } from '../common/guards/admin.guard';
 
 @ApiTags('Webhooks')
 @ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (e.g. demo)', required: true })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
+@UseGuards(AdminApiKeyAuthGuard)
 @Controller('webhooks')
 export class WebhooksController {
     constructor(private readonly webhooks: WebhooksService) {}

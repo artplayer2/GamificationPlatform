@@ -1,11 +1,16 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiBody, ApiHeader, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ApiKeysService } from './apikeys.service';
 import { CreateApiKeyDto } from './dto/create-apikey.dto';
 import { UpdateApiKeyDto } from './dto/update-apikey.dto';
+import { AdminApiKeyAuthGuard } from '../common/guards/admin.guard';
 
 @ApiTags('Client - API Keys')
+@ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID (e.g. demo)', required: true })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
+@UseGuards(AdminApiKeyAuthGuard)
 @Controller('client/apikeys')
 export class ApiKeysController {
   constructor(private readonly service: ApiKeysService) {}

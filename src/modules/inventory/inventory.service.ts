@@ -6,6 +6,8 @@ import { Tx, TxDocument } from './schemas/tx.schema';
 import { WalletOpDto } from './dto/wallet.dto';
 import { WalletTxQueryDto } from './dto/wallet-tx-query.dto';
 import { EventsService } from '../events/events.service';
+import { Project, ProjectDocument } from '../projects/schemas/project.schema';
+import { PlansService } from '../plans/plans.service';
 
 type EnsureResult = { tx: TxDocument; isNew: boolean };
 
@@ -13,8 +15,10 @@ type EnsureResult = { tx: TxDocument; isNew: boolean };
 export class InventoryService {
     constructor(
         @InjectModel(Player.name) private playerModel: Model<PlayerDocument>,
+        @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
         @InjectModel(Tx.name) private txModel: Model<TxDocument>,
         @Inject(forwardRef(() => EventsService)) private readonly events: EventsService,
+        private readonly plans: PlansService,
     ) {}
 
     async balance(tenantId: string, playerId: string) {
@@ -23,15 +27,24 @@ export class InventoryService {
             { wallet: 1, projectId: 1 }
         ).lean();
         if (!player) throw new NotFoundException('Player not found');
+        const project = await this.projectModel.findOne({ _id: player.projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
         return { playerId, wallet: player.wallet, projectId: player.projectId?.toString?.() ?? (player as any).projectId };
     }
 
     async credit(tenantId: string, dto: WalletOpDto) {
+        const playerLean = await this.playerModel.findOne({ _id: dto.playerId, tenantId }, { wallet: 1, projectId: 1 }).lean();
+        if (!playerLean) throw new NotFoundException('Player not found');
+        const project = await this.projectModel.findOne({ _id: playerLean.projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
+
         const { tx, isNew } = await this.ensureIdempotentTx(tenantId, dto, 'credit');
         if (!isNew) {
-            const player = await this.playerModel.findOne({ _id: dto.playerId, tenantId }, { wallet: 1 }).lean();
-            if (!player) throw new NotFoundException('Player not found');
-            return { playerId: dto.playerId, wallet: player.wallet, txId: tx.id, type: 'credit' as const, idempotent: true };
+            return { playerId: dto.playerId, wallet: playerLean.wallet, txId: tx.id, type: 'credit' as const, idempotent: true };
         }
 
         const path = `wallet.${dto.currency}`;
@@ -60,11 +73,16 @@ export class InventoryService {
     }
 
     async debit(tenantId: string, dto: WalletOpDto) {
+        const playerLean = await this.playerModel.findOne({ _id: dto.playerId, tenantId }, { wallet: 1, projectId: 1 }).lean();
+        if (!playerLean) throw new NotFoundException('Player not found');
+        const project = await this.projectModel.findOne({ _id: playerLean.projectId, tenantId }).lean();
+        if (!project) throw new NotFoundException('Project not found for this tenant');
+        const plan = await this.plans.getByCode((project as any).plan ?? 'free');
+        if (!plan.features.inventoryEnabled) throw new BadRequestException('Inventory feature disabled by plan');
+
         const { tx, isNew } = await this.ensureIdempotentTx(tenantId, dto, 'debit');
         if (!isNew) {
-            const player = await this.playerModel.findOne({ _id: dto.playerId, tenantId }, { wallet: 1 }).lean();
-            if (!player) throw new NotFoundException('Player not found');
-            return { playerId: dto.playerId, wallet: player.wallet, txId: tx.id, type: 'debit' as const, idempotent: true };
+            return { playerId: dto.playerId, wallet: playerLean.wallet, txId: tx.id, type: 'debit' as const, idempotent: true };
         }
 
         const path = `wallet.${dto.currency}`;

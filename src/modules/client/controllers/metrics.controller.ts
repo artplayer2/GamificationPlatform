@@ -1,10 +1,12 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ClientMetricsService } from '../services/metrics.service';
 import { ApiKeyAuthGuard } from '../../common/guards/apikey.guard';
 
 @ApiTags('Client - Metrics')
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
 @Controller('client/metrics')
 export class ClientMetricsController {
   constructor(private readonly metrics: ClientMetricsService) {}

@@ -16,6 +16,14 @@ export class TenantContextMiddleware implements NestMiddleware {
             return next();
         }
 
+        // Allow Player routes authenticated via Bearer token to skip tenant header
+        // The PlayerAuthGuard will inject tenantId into the request later
+        const hasBearer = typeof req.headers['authorization'] === 'string' &&
+            String(req.headers['authorization']).toLowerCase().startsWith('bearer ');
+        if (url.startsWith('/v1/player') && hasBearer) {
+            return next();
+        }
+
         const headerName = (process.env.TENANT_HEADER || 'x-tenant-id').toLowerCase();
         const tenantId = (req.headers[headerName] as string) || '';
 

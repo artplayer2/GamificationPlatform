@@ -34,6 +34,7 @@ export class PlansService {
         webhooksMaxPerMin: 600,
         storageMaxEvents: 100000,
         storageMaxPlayers: 100000,
+        projectsMaxPerTenant: 10,
         ...(input.limits || {}),
       },
       features: {
@@ -58,6 +59,15 @@ export class PlansService {
     const doc = await this.plans.findById(id).lean();
     if (!doc) throw new NotFoundException('Plan not found');
     return doc;
+  }
+
+  async getByCode(code: string) {
+    const searchedCode = code || 'free';
+    const doc = await this.plans.findOne({ code: searchedCode }).lean();
+    if (doc) return doc;
+    const fallback = await this.plans.findOne({ code: 'free' }).lean();
+    if (!fallback) throw new NotFoundException('Default plan not found');
+    return fallback;
   }
 
   async update(id: string, input: UpdatePlanInput) {

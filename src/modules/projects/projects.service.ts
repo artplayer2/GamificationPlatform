@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Project, ProjectDocument } from './schemas/project.schema';
+import { PlansService } from '../plans/plans.service';
 
 export interface CreateProjectInput {
     name: string;
@@ -19,12 +20,22 @@ export interface UpdateProjectInput {
 export class ProjectsService {
     constructor(
         @InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>,
+        private readonly plans: PlansService,
     ) {}
 
     async create(tenantId: string, input: CreateProjectInput) {
         if (!tenantId) throw new BadRequestException('Missing tenantId');
         if (!input?.name || typeof input.name !== 'string') {
             throw new BadRequestException('name is required');
+        }
+
+        // Enforce projects per tenant limit based on plan
+        const planCode = (input.plan ?? 'free').trim();
+        const plan = await this.plans.getByCode(planCode);
+        const maxProjects = plan?.limits?.projectsMaxPerTenant ?? 10;
+        const currentCount = await this.projectModel.countDocuments({ tenantId }).exec();
+        if (currentCount >= maxProjects) {
+            throw new ConflictException(`Project limit reached for plan '${planCode}' (${maxProjects})`);
         }
 
         const doc = await this.projectModel.create({

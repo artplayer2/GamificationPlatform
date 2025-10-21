@@ -1,7 +1,7 @@
 // src/modules/destinations/destinations.controller.ts
 import {Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req} from '@nestjs/common';
 import { Request } from 'express';
-import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { DestinationsService } from './destinations.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
@@ -15,6 +15,7 @@ import { Project, ProjectDocument } from '../projects/schemas/project.schema';
     description: 'Tenant ID (e.g. demo)',
     required: true,
 })
+@ApiSecurity('Tenant')
 @Controller('destinations')
 export class DestinationsController {
     constructor(

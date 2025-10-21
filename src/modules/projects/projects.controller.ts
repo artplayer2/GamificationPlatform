@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
+import { AdminApiKeyAuthGuard } from '../common/guards/admin.guard';
 
 class CreateProjectDto {
     name!: string;
@@ -15,6 +16,9 @@ class CreateProjectDto {
     description: 'Tenant ID (e.g. demo)',
     required: true,
 })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
+@UseGuards(AdminApiKeyAuthGuard)
 @Controller('projects')
 export class ProjectsController {
     constructor(private readonly projects: ProjectsService) {}

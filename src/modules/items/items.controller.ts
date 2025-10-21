@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiHeader, ApiQuery, ApiTags, ApiBody } from '@nestjs/swagger';
+import { ApiHeader, ApiQuery, ApiTags, ApiBody, ApiSecurity } from '@nestjs/swagger';
 import { ItemsService } from './items.service';
 import { CreateItemDefDto } from './dto/create-item-def.dto';
 import { GrantItemDto } from './dto/grant-item.dto';
 import { ConsumeItemDto } from './dto/consume-item.dto';
+import { ApiKeyAuthGuard } from '../common/guards/apikey.guard';
 
 @ApiTags('Items')
 @ApiHeader({
@@ -12,7 +13,10 @@ import { ConsumeItemDto } from './dto/consume-item.dto';
     description: 'Tenant ID (e.g. demo)',
     required: true,
 })
+@ApiSecurity('Tenant')
+@ApiSecurity('ApiKey')
 @Controller('items')
+@UseGuards(ApiKeyAuthGuard)
 export class ItemsController {
     constructor(private readonly svc: ItemsService) {}
 

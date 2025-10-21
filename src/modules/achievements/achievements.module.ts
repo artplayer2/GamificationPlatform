@@ -7,6 +7,8 @@ import { PlayerAchievement, PlayerAchievementSchema } from './schemas/player-ach
 import { Player, PlayerSchema } from '../players/schemas/player.schema';
 import { Project, ProjectSchema } from '../projects/schemas/project.schema';
 import { EventsModule } from '../events/events.module';
+import { PlansModule } from '../plans/plans.module';
+import { ApiKeysModule } from '../apikeys/apikeys.module';
 
 @Module({
     imports: [
@@ -17,6 +19,8 @@ import { EventsModule } from '../events/events.module';
             { name: Project.name, schema: ProjectSchema },
         ]),
         EventsModule, // 👈 para logar eventos
+        PlansModule,
+        ApiKeysModule,
     ],
     controllers: [AchievementsController],
     providers: [AchievementsService],
