@@ -23,7 +23,7 @@ class CreateProjectDto {
 export class ProjectsController {
     constructor(private readonly projects: ProjectsService) {}
 
-    @ApiOperation({ summary: 'Create project' })
+    @ApiOperation({ summary: 'Create project (returns secret once)' })
     @ApiBody({
         schema: {
             example: {
@@ -35,7 +35,7 @@ export class ProjectsController {
     })
     @ApiResponse({
         status: 201,
-        description: 'Project created',
+        description: 'Project created (secret returned only once)',
     })
     @ApiBody({ description: "Create a new project", examples: { default: { value: {
   "name": "demo",
@@ -61,5 +61,13 @@ export class ProjectsController {
     async get(@Req() req: Request, @Param('id') id: string) {
         const tenantId = (req as any).tenantId as string;
         return this.projects.get(tenantId, id);
+    }
+
+    @ApiOperation({ summary: 'Rotate project secret (returns new secret once)' })
+    @ApiResponse({ status: 200, description: 'Secret rotated; plaintext returned once' })
+    @Post(':id/rotate-secret')
+    async rotateSecret(@Req() req: Request, @Param('id') id: string) {
+        const tenantId = (req as any).tenantId as string;
+        return this.projects.rotateSecret(tenantId, id);
     }
 }

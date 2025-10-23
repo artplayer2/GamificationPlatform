@@ -1,15 +1,16 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { PlayersModule } from '../players/players.module';
-import { AchievementsModule } from '../achievements/achievements.module';
-import { PlayerAuthService } from './player-auth.service';
-import { PlayerAuthController } from './player-auth.controller';
-import { PlayerSelfController } from './player-self.controller';
-import { PlayerLeaderboardsController } from './player-leaderboards.controller';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Player, PlayerSchema } from '../players/schemas/player.schema';
-import { PlayerProfileController } from './player-profile.controller';
+import { Module, forwardRef } from '@nestjs/common'
+import { JwtModule } from '@nestjs/jwt'
+import { ConfigModule, ConfigService } from '@nestjs/config'
+import { PlayersModule } from '../players/players.module'
+import { AchievementsModule } from '../achievements/achievements.module'
+import { PlayerAuthService } from './player-auth.service'
+import { PlayerAuthController } from './player-auth.controller'
+import { PlayerSelfController } from './player-self.controller'
+import { PlayerLeaderboardsController } from './player-leaderboards.controller'
+import { MongooseModule } from '@nestjs/mongoose'
+import { Player, PlayerSchema } from '../players/schemas/player.schema'
+import { PlayerProfileController } from './player-profile.controller'
+import { AvatarsModule } from '../avatars/avatars.module'
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { PlayerProfileController } from './player-profile.controller';
     }),
     forwardRef(() => PlayersModule),
     forwardRef(() => AchievementsModule),
+    AvatarsModule,
   ],
   controllers: [PlayerAuthController, PlayerSelfController, PlayerLeaderboardsController, PlayerProfileController],
   providers: [PlayerAuthService],

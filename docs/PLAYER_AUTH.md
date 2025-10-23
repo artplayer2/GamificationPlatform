@@ -84,3 +84,26 @@ Once authenticated, players can access:
 - Passwords are stored as **PBKDF2-SHA256** hashes with random salts; verification uses constant-time comparison.
 - `email` is unique per project (sparse unique index) and must not be reused within the same project.
 - Player endpoints enforce per-player rate limits (default via `PLAYER_RPS_DEFAULT`).
+
+
+## Avatar Upload & Public Route
+
+- `POST /v1/player/me/avatar` — upload de avatar (apenas jogador autenticado). Substitui o avatar anterior.
+- `GET /v1/public/avatars/:shortKey` — rota pública para servir o avatar por chave curta.
+
+Exemplos:
+```bash
+# Upload (multipart/form-data)
+curl -s -X POST http://localhost:3000/v1/player/me/avatar \
+  -H "Authorization: Bearer <JWT>" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@/caminho/para/avatar.png"
+
+# Acesso público por short key
+curl -s http://localhost:3000/v1/public/avatars/av_abC12345 -o avatar.png
+```
+
+Notas:
+- Geração de nomes curtos para links (`av_<chave>`).
+- Dimensões e tamanho máximo são validados via variáveis do `.env` (ver `docs/ENV.md`).
+- Tipos de imagem aceitos configuráveis (PNG/JPEG/WEBP por padrão).

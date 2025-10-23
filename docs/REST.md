@@ -28,6 +28,39 @@ Exceeding limits returns `429 Too Many Requests`.
 ```json
 { "name": "demo", "plan": "free" }
 ```
+Headers: `x-tenant-id`, `x-api-key` (Admin)
+
+Response (secret returned once):
+```json
+{
+  "id": "<PROJECT_ID>",
+  "tenantId": "demo",
+  "name": "demo",
+  "plan": "free",
+  "metadata": {},
+  "publicKey": "gpub_...",
+  "plaintextSecret": "gsec_...",
+  "createdAt": "2024-05-10T12:34:56.000Z",
+  "updatedAt": "2024-05-10T12:34:56.000Z"
+}
+```
+
+## Rotate Project Secret
+`POST /v1/projects/:id/rotate-secret`
+```bash
+curl -s -X POST http://localhost:3000/v1/projects/<PROJECT_ID>/rotate-secret \
+  -H "x-tenant-id: demo" -H "x-api-key: <PLAINTEXT_ADMIN_API_KEY>"
+```
+Response (new secret returned once):
+```json
+{
+  "id": "<PROJECT_ID>",
+  "tenantId": "demo",
+  "publicKey": "gpub_...",
+  "plaintextSecret": "gsec_new_...",
+  "rotatedAt": "2024-05-10T13:00:00.000Z"
+}
+```
 
 ## Create Player
 `POST /v1/players`
@@ -301,3 +334,28 @@ Response:
 ```bash
 curl -s http://localhost:3000/v1/admin/metrics -H "x-tenant-id: demo" -H "x-api-key: <PLAINTEXT_ADMIN_API_KEY>"
 ```
+
+## Player - Avatar
+
+`POST /v1/player/me/avatar`
+Upload de avatar do jogador autenticado (multipart/form-data). Substitui o avatar anterior e retorna a URL pública.
+```bash
+curl -s -X POST http://localhost:3000/v1/player/me/avatar \
+  -H "Authorization: Bearer <JWT>" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@/caminho/para/avatar.png"
+```
+Response:
+```json
+{ "avatarUrl": "/v1/public/avatars/av_abC12345" }
+```
+
+`GET /v1/public/avatars/:shortKey`
+Rota pública para obter o avatar por chave curta.
+```bash
+curl -s http://localhost:3000/v1/public/avatars/av_abC12345 -o avatar.png
+```
+
+Notas:
+- Dimensões e tamanho máximo validados conforme `.env`.
+- Tipos suportados configuráveis: PNG/JPEG/WEBP por padrão.

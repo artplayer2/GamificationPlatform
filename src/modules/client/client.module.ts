@@ -7,10 +7,14 @@ import { PlayersModule } from '../players/players.module';
 import { AchievementsModule } from '../achievements/achievements.module';
 import { ClientPlayersController } from './controllers/players.controller';
 import { ClientLeaderboardsController } from './controllers/leaderboards.controller';
+import { TenantsModule } from '../tenants/tenants.module';
+import { EmailModule } from '../email/email.module';
+import { ClientAccountController } from './controllers/account.controller';
+import { ClientUsersController } from './controllers/users.controller';
 
 @Module({
-  imports: [EventsModule, ApiKeysModule, PlayersModule, AchievementsModule],
-  controllers: [ClientMetricsController, ClientPlayersController, ClientLeaderboardsController],
+  imports: [EventsModule, ApiKeysModule, PlayersModule, AchievementsModule, TenantsModule, EmailModule],
+  controllers: [ClientMetricsController, ClientPlayersController, ClientLeaderboardsController, ClientAccountController, ClientUsersController],
   providers: [ClientMetricsService],
 })
 export class ClientModule {}

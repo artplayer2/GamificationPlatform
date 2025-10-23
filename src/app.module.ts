@@ -9,20 +9,22 @@ import { ProgressionModule } from './modules/progression/progression.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { AchievementsModule } from './modules/achievements/achievements.module';
 import { CountersModule } from './modules/counters/counters.module';
-import {EventsModule} from "./modules/events/events.module";
-import {QuestsModule} from "./modules/quests/quests.module";
-import {ItemsModule} from "./modules/items/items.module";
-import {StoreModule} from "./modules/store/store.module";
+import { EventsModule } from './modules/events/events.module';
+import { QuestsModule } from './modules/quests/quests.module';
+import { ItemsModule } from './modules/items/items.module';
+import { StoreModule } from './modules/store/store.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
-import {ScheduleModule} from "@nestjs/schedule";
+import { ScheduleModule } from '@nestjs/schedule';
 import { DestinationsModule } from './modules/destinations/destinations.module';
-import {TenantProjectModule} from "./modules/common/tenant-project.module";
+import { TenantProjectModule } from './modules/common/tenant-project.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { ApiKeysModule } from './modules/apikeys/apikeys.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ClientModule } from './modules/client/client.module';
 import { PlayerAuthModule } from './modules/player-auth/player-auth.module';
-
+import { TenantsModule } from './modules/tenants/tenants.module';
+import { ClientAuthModule } from './modules/client-auth/client-auth.module';
+import { AvatarsModule } from './modules/avatars/avatars.module';
 
 @Module({
   imports: [
@@ -49,6 +51,9 @@ import { PlayerAuthModule } from './modules/player-auth/player-auth.module';
     AdminModule,
     ClientModule,
     PlayerAuthModule,
+    TenantsModule,
+    ClientAuthModule,
+    AvatarsModule,
   ],
 })
 export class AppModule {}

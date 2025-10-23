@@ -122,6 +122,7 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
 ---
 
 ## 🧾 Events (canonical types)
+- `project.created`, `project.secret.rotated`
 - `player.created`, `player.xp.added`, `player.level.updated`, **`player.levelup`**
 - `wallet.credited`, `wallet.debited`
 - `item.granted`, `item.consumed`
@@ -129,6 +130,27 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
 - `store.purchase.succeeded`, `counter.incremented`
 
 > All events go to **Mongo** (`events`), **WS** (project channel), and **Webhooks** (if subscribed).
+
+---
+
+## 🔐 Project Secrets
+- Chaves do projeto são gerenciadas via endpoints administrativos.
+- `publicKey` e `plaintextSecret` são retornados apenas uma vez na criação.
+- Rotação de segredo retorna apenas o novo `plaintextSecret` uma única vez.
+- O backend armazena apenas o hash do segredo (`sha256`); nunca persiste o texto plano.
+
+Endpoints:
+- Criar projeto: `POST /v1/projects` (headers: `x-tenant-id`, `x-api-key`)
+- Rotacionar segredo: `POST /v1/projects/:id/rotate-secret` (headers: `x-tenant-id`, `x-api-key`)
+
+Eventos emitidos:
+- `project.created` — payload: `{ name, plan }`
+- `project.secret.rotated` — payload: `{ publicKey }`
+
+Boas práticas:
+- Salve `plaintextSecret` com segurança no cliente (vault/secret manager).
+- Nunca exponha `plaintextSecret` em logs, listagens ou front-end.
+- Use WS/Webhooks para monitorar eventos de segurança sem dados sensíveis.
 
 ---
 

@@ -1,12 +1,15 @@
-import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { PlayerAuthGuard } from '../common/guards/player.guard';
-import { PlayerAuthService } from './player-auth.service';
-import { Player, PlayerDocument } from '../players/schemas/player.schema';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { Body, Controller, Get, Patch, Post, Req, UseGuards, UploadedFile, UseInterceptors } from '@nestjs/common'
+import { Request } from 'express'
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { InjectModel } from '@nestjs/mongoose'
+import { Model } from 'mongoose'
+import { PlayerAuthGuard } from '../common/guards/player.guard'
+import { PlayerAuthService } from './player-auth.service'
+import { Player, PlayerDocument } from '../players/schemas/player.schema'
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { AvatarsService } from '../avatars/avatars.service'
+import * as multer from 'multer'
 
 class UpdateProfileDto {
   @IsOptional()
@@ -43,6 +46,7 @@ export class PlayerProfileController {
   constructor(
     @InjectModel(Player.name) private readonly playerModel: Model<PlayerDocument>,
     private readonly auth: PlayerAuthService,
+    private readonly avatars: AvatarsService,
   ) {}
 
   @Get('profile')
@@ -118,5 +122,23 @@ export class PlayerProfileController {
     doc.passwordHash = this.auth.hashPassword(body.newPassword);
     await doc.save();
     return { ok: true };
+  }
+
+  @Post('avatar')
+  @ApiOperation({ summary: 'Upload my avatar (replaces previous)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  @UseGuards(PlayerAuthGuard)
+  @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
+  async uploadAvatar(@Req() req: Request, @UploadedFile() file: Express.Multer.File) {
+    const tenantId = (req as any).tenantId as string
+    const projectId = (req as any).projectId as string
+    const playerId = (req as any).player?.id as string
+    const { urlPath } = await this.avatars.uploadAvatar(tenantId, projectId, playerId, file)
+    await this.playerModel.updateOne(
+      { _id: playerId, tenantId, projectId },
+      { $set: { 'profile.avatarUrl': urlPath } },
+    ).exec()
+    return { avatarUrl: urlPath }
   }
 }

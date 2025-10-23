@@ -34,7 +34,8 @@ async function bootstrap() {
           { type: 'apiKey', name: 'x-api-key', in: 'header', description: 'Project API Key' },
           'ApiKey',
       )
-        .addBearerAuth()
+        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Player JWT for /v1/player/* endpoints' }, 'Bearer')
+        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Client JWT for /v1/client/* endpoints' }, 'ClientBearer')
         .addServer('http://localhost:3000')
         .build();
 

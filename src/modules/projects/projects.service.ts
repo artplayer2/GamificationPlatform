@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Project, ProjectDocument } from './schemas/project.schema';
 import { PlansService } from '../plans/plans.service';
+import { randomBytes, createHash } from 'crypto';
+import { EventsService } from '../events/events.service';
 
 export interface CreateProjectInput {
     name: string;
@@ -21,7 +23,22 @@ export class ProjectsService {
     constructor(
         @InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>,
         private readonly plans: PlansService,
+        private readonly events: EventsService,
     ) {}
+
+    private generatePublicKey(): string {
+        const raw = randomBytes(24).toString('base64url');
+        return `gpub_${raw}`;
+    }
+
+    private generateSecretPlaintext(): string {
+        const raw = randomBytes(48).toString('base64url');
+        return `gsec_${raw}`;
+    }
+
+    private hashSecret(secret: string): string {
+        return createHash('sha256').update(secret).digest('hex');
+    }
 
     async create(tenantId: string, input: CreateProjectInput) {
         if (!tenantId) throw new BadRequestException('Missing tenantId');
@@ -38,16 +55,28 @@ export class ProjectsService {
             throw new ConflictException(`Project limit reached for plan '${planCode}' (${maxProjects})`);
         }
 
+        const publicKey = this.generatePublicKey();
+        const plaintextSecret = this.generateSecretPlaintext();
+        const secretHash = this.hashSecret(plaintextSecret);
+
         const doc = await this.projectModel.create({
             tenantId,
             name: input.name.trim(),
-            // estes campos podem não existir no schema atual — tudo bem:
             plan: input.plan ?? 'free',
             metadata: input.metadata ?? {},
+            publicKey,
+            secretKey: secretHash,
         });
 
-        // Convertemos para objeto plano para evitar erros de tipagem do Mongoose
         const o: any = doc.toObject();
+
+        // Emit safe audit event
+        await this.events.log({
+            tenantId,
+            projectId: String(o._id),
+            type: 'project.created',
+            payload: { name: o.name, plan: o.plan ?? 'free' },
+        });
 
         return {
             id: String(o._id),
@@ -55,8 +84,40 @@ export class ProjectsService {
             name: o.name,
             plan: o.plan ?? 'free',
             metadata: o.metadata ?? {},
+            // return keys securely: publicKey and secret only once
+            publicKey: o.publicKey,
+            plaintextSecret,
             createdAt: o.createdAt ?? null,
             updatedAt: o.updatedAt ?? null,
+        };
+    }
+
+    async rotateSecret(tenantId: string, id: string) {
+        if (!tenantId) throw new BadRequestException('Missing tenantId');
+        if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid project id');
+
+        const project = await this.projectModel.findOne({ _id: id, tenantId }).exec();
+        if (!project) throw new NotFoundException('Project not found');
+
+        const plaintextSecret = this.generateSecretPlaintext();
+        const secretHash = this.hashSecret(plaintextSecret);
+        (project as any).secretKey = secretHash;
+        await project.save();
+
+        // Emit safe audit event (avoid secret exposure)
+        await this.events.log({
+            tenantId,
+            projectId: project._id.toString(),
+            type: 'project.secret.rotated',
+            payload: { publicKey: (project as any).publicKey },
+        });
+
+        return {
+            id: project._id.toString(),
+            tenantId,
+            publicKey: (project as any).publicKey,
+            plaintextSecret,
+            rotatedAt: (project as any).updatedAt ?? new Date(),
         };
     }
 
@@ -66,11 +127,10 @@ export class ProjectsService {
         const rows = await this.projectModel
             .find(
                 { tenantId },
-                // projeção inclui os campos que queremos se existirem
                 { name: 1, plan: 1, tenantId: 1, createdAt: 1, updatedAt: 1 },
             )
             .sort({ createdAt: -1 })
-            .lean() // já vem objeto plano
+            .lean()
             .exec();
 
         return rows.map((r: any) => ({
