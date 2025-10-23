@@ -105,6 +105,15 @@ Provides **REST APIs**, **WebSockets** (realtime), and **Webhooks** (with retrie
 
 ---
 
+## 🔒 Rate Limit & Redis
+- Recommended for production to enforce per-tenant/player quotas.
+- Prefer `REDIS_URL` (e.g., `redis://:password@host:6379/0`). If password contains `@`, use `%40`.
+- Alternative: `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`.
+- Quick test: set `TENANT_RPS_DEFAULT=1`, call twice; the second returns `429`.
+- Full details in **[docs/ENV.md](./docs/ENV.md)**.
+
+---
+
 ## 🧩 Modules (Overview)
 - `projects` – tenant/project base, validation
 - `players` – lifecycle, username, wallet link

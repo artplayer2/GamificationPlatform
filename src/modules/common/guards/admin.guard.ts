@@ -1,14 +1,14 @@
 import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiKeysService } from '../../apikeys/apikeys.service';
-
-type Bucket = { windowStart: number; count: number; limit: number };
+import { RateLimitRedisService } from '../../rate-limit/rate-limit.service';
 
 @Injectable()
 export class AdminApiKeyAuthGuard implements CanActivate {
-  private buckets = new Map<string, Bucket>();
-
-  constructor(private readonly apiKeys: ApiKeysService) {}
+  constructor(
+    private readonly apiKeys: ApiKeysService,
+    private readonly rateLimit: RateLimitRedisService,
+  ) {}
 
   private headerOf(req: Request, name: string): string | undefined {
     return (req.headers[name.toLowerCase()] as string | undefined) ?? undefined;
@@ -31,19 +31,11 @@ export class AdminApiKeyAuthGuard implements CanActivate {
       throw new UnauthorizedException('API key lacks required admin role');
     }
 
-    // simple global per-key rate-limit
-    const key = doc._id.toString();
-    const now = Date.now();
-    const minute = 60_000;
-    const bucket = this.buckets.get(key) || { windowStart: now, count: 0, limit: doc.rateLimitPerMin || 300 };
-    if (now - bucket.windowStart >= minute) {
-      bucket.windowStart = now;
-      bucket.count = 0;
-      bucket.limit = doc.rateLimitPerMin || 300;
-    }
-    bucket.count += 1;
-    this.buckets.set(key, bucket);
-    if (bucket.count > bucket.limit) {
+    // per-key rate limit via Redis
+    const bucketKey = `apikey:${doc._id.toString()}`;
+    const limit = doc.rateLimitPerMin || 300;
+    const result = await this.rateLimit.checkPerMinute(bucketKey, limit);
+    if (!result.allowed) {
       throw new HttpException('API key rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
     }
 

@@ -21,6 +21,7 @@ WEBHOOK_TIMEOUT_MS=5000
 # Player Auth
 PLAYER_JWT_SECRET=dev-player-secret
 PLAYER_JWT_EXPIRES=1h
+TENANT_RPS_DEFAULT=300
 PLAYER_RPS_DEFAULT=300
 
 # Client Auth
@@ -32,7 +33,45 @@ EMAIL_PROVIDER=console
 EMAIL_FROM=noreply@example.com
 RESEND_API_KEY=
 PUBLIC_URL=http://localhost:3000
+
+# Redis (Rate Limit)
+# Preferir `REDIS_URL` no formato: redis://:senha@host:porta/db
+# Exemplo:
+# REDIS_URL=redis://:minhaSenhaForte@localhost:6379/0
+# Alternativa por host/porta/senha:
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+# REDIS_PASSWORD=minhaSenhaForte
 ```
+
+## Notas sobre Redis e Rate Limit
+- O middleware de rate-limit usa Redis para contadores por tenant, player e IP.
+- Se o Redis estiver indisponível, o sistema falha em modo aberto (não bloqueia) e registra aviso.
+- Cliente Redis é criado de forma preguiçosa: conecta no primeiro uso.
+- Variáveis:
+  - Preferir `REDIS_URL` com senha: `redis://:SENHA@HOST:PORTA/DB`.
+  - Se a senha tiver `@`, codifique como `%40` (ex.: `Luminalab%402025`).
+  - Alternativa: `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`.
+- Limites padrão:
+  - `TENANT_RPS_DEFAULT`: requisições por minuto por tenant.
+  - `PLAYER_RPS_DEFAULT`: requisições por minuto por player.
+
+### Exemplos
+```
+# URL com senha contendo '@' (codificar como %40)
+REDIS_URL=redis://:Luminalab%402025@redis.luminalab.ai:6379/0
+
+# Sem URL (host/porta/senha)
+REDIS_HOST=redis.luminalab.ai
+REDIS_PORT=6379
+REDIS_PASSWORD=Luminalab@2025
+```
+
+### Como testar rate-limit
+- Defina `TENANT_RPS_DEFAULT=1` temporariamente no `.env`.
+- Faça duas chamadas seguidas ao mesmo endpoint com os mesmos headers.
+- Esperado: primeira `401/200` conforme auth; segunda `429 Too Many Requests`.
+- Revertir `TENANT_RPS_DEFAULT` para `300` após testes.
 
 ## Notas sobre JWT do Cliente
 - `CLIENT_JWT_EXPIRES_IN`: use valor numérico em segundos (ex.: `3600`).

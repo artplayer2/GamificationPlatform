@@ -21,6 +21,18 @@ All notable changes to this project will be documented in this file.
 - Tests: add `jest.config.js` and unit tests for `ClientAuthService` and `ClientAuthGuard`
 - Fixes: resolve TypeScript build errors by typing `_id` in `Tenant`/`TenantUser` schemas and ensuring numeric `expiresIn` in `ClientAuthModule`
 
+- Rate Limit & Redis:
+  - Redis-backed counters for tenant/player/IP with lazy client creation
+  - Fails-open when Redis is unreachable (allows traffic, logs warning)
+  - Document `REDIS_URL` (preferido) e `REDIS_HOST`/`REDIS_PORT`/`REDIS_PASSWORD`
+  - Notes on password encoding in URL (`@` -> `%40`)
+  - Add `TENANT_RPS_DEFAULT` e `PLAYER_RPS_DEFAULT` guidance in `docs/ENV.md`
+- Docs updates:
+  - `docs/ENV.md`: seção completa sobre Redis, exemplos e testes
+  - `docs/SETUP.md`: passos para configurar Redis e testar 429
+  - `README.md`: seção "Rate Limit & Redis" com link para ENV.md
+  - `docs/TROUBLESHOOTING.md`: problemas comuns de Redis e soluções
+
 ## [0.1.0] - 2024-10-23
 - Initial public structure of modules (projects, players, progression, etc.)
 - Events pipeline (Mongo, WebSocket, Webhooks) and basic canonical types
